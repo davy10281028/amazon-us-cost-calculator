@@ -55,31 +55,38 @@ window.AMZ_RATES = {
    *   above       : true  → 門檻「以上」的部分才降到 lowPct（家具、珠寶）
    *                 false → 門檻「以下」整筆用 lowPct（美妝、嬰兒）
    *   extraPerItem: 每件額外固定手續費 (USD)，如書籍
+   *   hint        : 選配的補充說明（非費率推導，純編輯評語），如「退貨率高」
+   *
+   *   ⚠️ 畫面上的佣金說明文字（「固定 15%」「≤$10 收 8%，>$10 收 15%」等）
+   *      是由上面這些數字「自動生成」的，不需要手寫、也不會寫錯。
+   *      你只要改 pct / threshold / lowPct，說明文字會自己跟上。
    * -------------------------------------------------------------------------*/
   categories: {
-    home:        { pct: 15, tiered: false, label: { zh: 'Home & Kitchen 居家生活',            en: 'Home & Kitchen' },        note: { zh: '固定 15%',                      en: 'Flat 15%' } },
-    sports:      { pct: 15, tiered: false, label: { zh: 'Sports & Outdoors 運動戶外',          en: 'Sports & Outdoors' },     note: { zh: '固定 15%',                      en: 'Flat 15%' } },
-    toys:        { pct: 15, tiered: false, label: { zh: 'Toys & Games 玩具',                  en: 'Toys & Games' },          note: { zh: '固定 15%',                      en: 'Flat 15%' } },
-    pet:         { pct: 15, tiered: false, label: { zh: 'Pet Supplies 寵物用品',              en: 'Pet Supplies' },          note: { zh: '固定 15%',                      en: 'Flat 15%' } },
-    health:      { pct: 15, tiered: false, label: { zh: 'Health & Household 健康家用',        en: 'Health & Household' },    note: { zh: '固定 15%',                      en: 'Flat 15%' } },
-    office:      { pct: 15, tiered: false, label: { zh: 'Office Products 辦公用品',           en: 'Office Products' },       note: { zh: '固定 15%',                      en: 'Flat 15%' } },
-    lawn:        { pct: 15, tiered: false, label: { zh: 'Lawn & Garden 庭院園藝',             en: 'Lawn & Garden' },         note: { zh: '固定 15%',                      en: 'Flat 15%' } },
+    home:        { pct: 15, tiered: false, label: { zh: 'Home & Kitchen 居家生活',        en: 'Home & Kitchen' } },
+    sports:      { pct: 15, tiered: false, label: { zh: 'Sports & Outdoors 運動戶外',      en: 'Sports & Outdoors' } },
+    toys:        { pct: 15, tiered: false, label: { zh: 'Toys & Games 玩具',              en: 'Toys & Games' } },
+    pet:         { pct: 15, tiered: false, label: { zh: 'Pet Supplies 寵物用品',          en: 'Pet Supplies' } },
+    health:      { pct: 15, tiered: false, label: { zh: 'Health & Household 健康家用',    en: 'Health & Household' } },
+    office:      { pct: 15, tiered: false, label: { zh: 'Office Products 辦公用品',       en: 'Office Products' } },
+    lawn:        { pct: 15, tiered: false, label: { zh: 'Lawn & Garden 庭院園藝',         en: 'Lawn & Garden' } },
     beauty:      { pct: 15, tiered: true, threshold: 10,  lowPct: 8,  above: false,
-                                          label: { zh: 'Beauty & Personal Care 美妝個護',     en: 'Beauty & Personal Care' }, note: { zh: '≤$10 收 8%，>$10 收 15%',      en: '8% if ≤$10, else 15%' } },
+                   label: { zh: 'Beauty & Personal Care 美妝個護', en: 'Beauty & Personal Care' } },
     baby:        { pct: 15, tiered: true, threshold: 10,  lowPct: 8,  above: false,
-                                          label: { zh: 'Baby Products 嬰兒用品',              en: 'Baby Products' },         note: { zh: '≤$10 收 8%，>$10 收 15%',      en: '8% if ≤$10, else 15%' } },
-    clothing:    { pct: 17, tiered: false, label: { zh: 'Clothing & Accessories 服飾',        en: 'Clothing & Accessories' }, note: { zh: '固定 17%（退貨率高，注意）',    en: 'Flat 17% (high return rate)' } },
-    electronics: { pct: 8,  tiered: false, label: { zh: 'Electronics 電子產品',               en: 'Electronics' },           note: { zh: '固定 8%（最低標準費率）',       en: 'Flat 8% (lowest standard rate)' } },
-    camera:      { pct: 8,  tiered: false, label: { zh: 'Camera & Photo 相機攝影',            en: 'Camera & Photo' },        note: { zh: '固定 8%',                       en: 'Flat 8%' } },
-    auto:        { pct: 12, tiered: false, label: { zh: 'Automotive 汽車用品',                en: 'Automotive' },            note: { zh: '固定 12%',                      en: 'Flat 12%' } },
+                   label: { zh: 'Baby Products 嬰兒用品',          en: 'Baby Products' } },
+    clothing:    { pct: 17, tiered: false, label: { zh: 'Clothing & Accessories 服飾',    en: 'Clothing & Accessories' },
+                   hint: { zh: '退貨率高，注意', en: 'watch the high return rate' } },
+    electronics: { pct: 8,  tiered: false, label: { zh: 'Electronics 電子產品',           en: 'Electronics' },
+                   hint: { zh: '最低標準費率', en: 'lowest standard rate' } },
+    camera:      { pct: 8,  tiered: false, label: { zh: 'Camera & Photo 相機攝影',        en: 'Camera & Photo' } },
+    auto:        { pct: 12, tiered: false, label: { zh: 'Automotive 汽車用品',            en: 'Automotive' } },
     furniture:   { pct: 15, tiered: true, threshold: 200, lowPct: 10, above: true,
-                                          label: { zh: 'Furniture 家具',                      en: 'Furniture' },             note: { zh: '≤$200 收 15%，超過部分收 10%',  en: '15% up to $200, 10% above' } },
+                   label: { zh: 'Furniture 家具',                  en: 'Furniture' } },
     jewelry:     { pct: 20, tiered: true, threshold: 250, lowPct: 5,  above: true,
-                                          label: { zh: 'Jewelry 珠寶首飾',                    en: 'Jewelry' },               note: { zh: '≤$250 收 20%，超過部分收 5%',   en: '20% up to $250, 5% above' } },
-    videogames:  { pct: 15, tiered: false, label: { zh: 'Video Games 電玩遊戲',               en: 'Video Games' },           note: { zh: '固定 15%',                      en: 'Flat 15%' } },
-    musical:     { pct: 15, tiered: false, label: { zh: 'Musical Instruments 樂器',           en: 'Musical Instruments' },   note: { zh: '固定 15%',                      en: 'Flat 15%' } },
+                   label: { zh: 'Jewelry 珠寶首飾',                en: 'Jewelry' } },
+    videogames:  { pct: 15, tiered: false, label: { zh: 'Video Games 電玩遊戲',           en: 'Video Games' } },
+    musical:     { pct: 15, tiered: false, label: { zh: 'Musical Instruments 樂器',       en: 'Musical Instruments' } },
     books:       { pct: 15, tiered: false, extraPerItem: 1.80,
-                                          label: { zh: 'Books 書籍',                          en: 'Books' },                 note: { zh: '固定 15% + $1.80 交易手續費',   en: 'Flat 15% + $1.80 closing fee' } },
+                   label: { zh: 'Books 書籍',                      en: 'Books' } },
     _source: 'https://sellercentral.amazon.com/help/hub/reference/external/GTG4BAWSY39Z98EN',
     _source2: 'https://gs.amazon.com.tw/pricing',
     _verified: '2026-04'

@@ -64,6 +64,11 @@ zh: {
   'tip.monthlySales': '用於分攤帳戶月費、攤提一次性優惠額度，以及計算月營收與月利潤。',
 
   'f.category': '商品品類',
+  'cat.note.flat': '固定 {pct}%',
+  'cat.note.tieredAbove': '≤${th} 收 {pct}%，超過部分收 {lowPct}%',
+  'cat.note.tieredBelow': '≤${th} 收 {lowPct}%，>${th} 收 {pct}%',
+  'cat.note.extra': ' + ${amt} 交易手續費',
+  'cat.note.hint': '（{hint}）',
   'f.referralPct': '銷售佣金 (Referral Fee)',
   'tip.referralPct': 'Amazon 依品類收取不同比例佣金，大部分品類 8%-20%。部分品類有階梯費率（如 Beauty ≤$10 收 8%、>$10 收 15%；家具 >$200 的部分降到 10%）。此欄會依售價自動換算「實際有效費率」。',
   'f.brandRebate': '🏷️ 新品牌入駐退傭 (Brand Referral Bonus)',
@@ -336,6 +341,11 @@ I18N.en = {
   'tip.monthlySales': 'Used to amortise the account fee and one-time incentive credits, and to compute monthly revenue and profit.',
 
   'f.category': 'Product category',
+  'cat.note.flat': 'Flat {pct}%',
+  'cat.note.tieredAbove': '{pct}% up to ${th}, {lowPct}% on the portion above',
+  'cat.note.tieredBelow': '{lowPct}% if ≤${th}, otherwise {pct}%',
+  'cat.note.extra': ' + ${amt} closing fee',
+  'cat.note.hint': ' ({hint})',
   'f.referralPct': 'Referral fee',
   'tip.referralPct': 'Amazon charges a category-dependent referral fee, typically 8%-20%. Some categories are tiered (Beauty pays 8% at ≤$10 and 15% above; Furniture drops to 10% on the portion above $200). This field shows the effective rate at your current price.',
   'f.brandRebate': '🏷️ Brand Referral Bonus',
@@ -906,6 +916,22 @@ function esc(s) {
 /** 只列舉真正的資料鍵，跳過 _source / _verified 之類的 metadata */
 const dataKeys = (obj) => Object.keys(obj).filter(k => !k.startsWith('_'));
 
+/**
+ * 佣金說明文字 —— 從 rates.js 的 pct / threshold / lowPct 自動生成。
+ * 刻意不讓 rates.js 手寫這段文字：否則改了費率忘了改說明，畫面就會說謊。
+ */
+function categoryNote(catKey) {
+  const c = R.categories[catKey];
+  if (!c) return '';
+  let s = c.tiered
+    ? t(c.above ? 'cat.note.tieredAbove' : 'cat.note.tieredBelow',
+        { th: c.threshold, pct: c.pct, lowPct: c.lowPct })
+    : t('cat.note.flat', { pct: c.pct });
+  if (c.extraPerItem) s += t('cat.note.extra', { amt: c.extraPerItem.toFixed(2) });
+  if (c.hint) s += t('cat.note.hint', { hint: L(c.hint) });
+  return s;
+}
+
 let toastTimer = null;
 function toast(msg) {
   const el = $('toast');
@@ -1417,7 +1443,7 @@ function recalc() {
   /* --- 佣金 / 退款管理費 --- */
   const effPct = Engine.effectiveReferralPct(price, catKey, R);
   $('referralPct').value = effPct.toFixed(1);
-  $('referralNote').textContent = L(R.categories[catKey].note);
+  $('referralNote').textContent = categoryNote(catKey);
   $('refundAdminFee').value = Engine.refundAdminFee(price, catKey, R).toFixed(2);
 
   /* --- 頭程明細 --- */

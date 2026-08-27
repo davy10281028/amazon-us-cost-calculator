@@ -30,7 +30,7 @@ node test/lint.js
 | 3 | `sizeTiers.*` | 同上（Product size tiers 段） | 尺寸／重量門檻。變動頻率低，但 2024 年 Amazon 改過一次，不要假設不變。 |
 | 4 | `storage.offpeak`<br>`storage.peak` | 🔒 [Seller Central G200612770](https://sellercentral.amazon.com/help/hub/reference/external/G200612770) | 淡季 / 旺季每立方英尺費率。**旺季（10-12 月）通常在 9 月公告**，所以 Q3 那次更新特別重要。 |
 | 5 | `storage.agedSurchargeFromDays` | 同上 | 超齡庫存起算天數（目前 181 天）。 |
-| 6 | `categories.*.pct`<br>`categories.*.threshold`<br>`categories.*.lowPct` | [Amazon 全球開店費率頁](https://gs.amazon.com.tw/pricing)<br>🔒 [Seller Central GTG4BAWSY39Z98EN](https://sellercentral.amazon.com/help/hub/reference/external/GTG4BAWSY39Z98EN) | 各品類佣金 %。<br>階梯費率的**門檻金額**（美妝 $10、家具 $200、珠寶 $250）也要對。 |
+| 6 | `categories.*.pct`<br>`categories.*.threshold`<br>`categories.*.lowPct` | [Amazon 全球開店費率頁](https://gs.amazon.com.tw/pricing)<br>🔒 [Seller Central GTG4BAWSY39Z98EN](https://sellercentral.amazon.com/help/hub/reference/external/GTG4BAWSY39Z98EN) | 各品類佣金 %。<br>階梯費率的**門檻金額**（美妝 $10、家具 $200、珠寶 $250）也要對。<br>**只改數字就好** —— 下拉選單標籤和「≤$10 收 8%」那段說明文字都是自動生成的。 |
 | 7 | `refundAdmin.pct`<br>`refundAdmin.cap` | [gs.amazon.com.tw/pricing](https://gs.amazon.com.tw/pricing) | 目前 min(佣金 × 20%, $5.00)。 |
 | 8 | `inboundPlacement.*` | 🔒 [Seller Central GC3Q44PBK8SQ2DEN](https://sellercentral.amazon.com/help/hub/reference/external/GC3Q44PBK8SQ2DEN) | 五個 size tier 各一個數字。 |
 | 9 | `accountFee.professional` | [gs.amazon.com.tw/pricing](https://gs.amazon.com.tw/pricing) | 幾乎不變（$39.99），但順手看一下。 |
@@ -107,16 +107,31 @@ node test/engine.test.js   # 引擎邏輯 + 資料完整性
 node test/lint.js          # i18n / element id / 中英字典對齊
 ```
 
-**引擎測試裡的 A 區塊（FBA 費率 parity）會失敗，這是正常的** ——
-它拿新引擎去比對原版 v1.1 寫死的費率表，你既然改了費率當然會不一樣。
+**兩個都要看到「全部通過」。** 只要 `meta.version` 已經改掉，
+測試會自動跳過「與原版 v1.1 寫死費率表的比對」（A 區塊和 B-1），
+不會產生假失敗 —— 你會看到：
 
-改完費率後請把 `test/engine.test.js` 裡的 `origCalcFbaFee` 一起更新成新費率，
-或直接把 A 區塊註解掉。**B / C / D / E 區塊必須全過。**
+```
+── A. FBA 配送費 parity（新引擎 vs 原版 v1.1）──
+   ⏭  跳過：rates.js 已更新到 2026.10（基準為 2026.04），
+      與 v1.1 寫死費率表的比對不再適用。這是預期行為，不是失敗。
+```
+
+其餘所有測試（階梯佣金公式、倉儲費公式、退款管理費上限、燃油附加費、
+bug 迴歸、端到端試算）都是**從 `rates.js` 讀值再驗算**，任何費率版本都會跑。
+所以如果它們失敗了，就是真的有問題，不要放過。
 
 ### 3.3 新增品類的話
 
-只要在 `rates.js` 的 `categories` 加一筆（含 `label.zh/en` 和 `note.zh/en`），
-下拉選單、佣金計算、佣金說明會自動跟上。
+在 `rates.js` 的 `categories` 加一筆，只需要 `label.zh/en` 加費率數字：
+
+```js
+grocery: { pct: 15, tiered: false, label: { zh: 'Grocery 食品雜貨', en: 'Grocery' } },
+```
+
+下拉選單、佣金計算、佣金說明文字會自動跟上（**說明文字不用手寫**，
+由 `pct` / `threshold` / `lowPct` 生成；想加編輯評語才用選配的 `hint: { zh, en }`）。
+
 但**還要去 `app.js` 的 `INSIGHTS` 加對應的市場洞察**，否則 `node test/lint.js` 會報錯。
 
 ### 3.4 部署

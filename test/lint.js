@@ -82,7 +82,8 @@ check('英文字典沒有多餘鍵', enKeys.filter(k => !(k in I18N.zh)));
 const DYNAMIC_PREFIXES = [
   'modeDesc.', 'app.subtitle.', 'note.rebate.', 'tier.', 'sv.', 'bd.',
   'adv.fbm', 'adv.tw', 'adv.margin', 'badge.rates', 'promo.adsTier',
-  'promo.shipDomestic', 'promo.shipCross', 'tw.suggest.'
+  'promo.shipDomestic', 'promo.shipCross', 'tw.suggest.',
+  'cat.note.tiered'   // 用 t(c.above ? '...Above' : '...Below') 三元傳入
 ];
 const used = new Set([...htmlKeys, ...tCalls]);
 check('沒有沒人用的孤兒字典鍵',
@@ -99,11 +100,20 @@ const catKeys = Object.keys(R.categories).filter(k => !k.startsWith('_'));
 check('rates.js 每個品類都有市場洞察 (INSIGHTS 的 zh + en)',
   catKeys.filter(k => !(INSIGHTS[k] && INSIGHTS[k].zh && INSIGHTS[k].en))
     .map(k => `品類 "${k}" 缺 INSIGHTS`));
-check('rates.js 每個品類都有 zh/en 名稱與說明',
+check('rates.js 每個品類都有 zh/en 名稱',
   catKeys.filter(k => {
     const c = R.categories[k];
-    return !(c.label && c.label.zh && c.label.en && c.note && c.note.zh && c.note.en);
-  }).map(k => `品類 "${k}" 缺 label/note 翻譯`));
+    return !(c.label && c.label.zh && c.label.en);
+  }).map(k => `品類 "${k}" 缺 label 翻譯`));
+// 佣金說明文字是自動生成的，但選配的 hint 若存在必須雙語
+check('rates.js 品類的 hint（若有）都是雙語',
+  catKeys.filter(k => {
+    const h = R.categories[k].hint;
+    return h && !(h.zh && h.en);
+  }).map(k => `品類 "${k}" 的 hint 缺翻譯`));
+// 已改為自動生成，rates.js 不該再手寫 note
+check('rates.js 的品類沒有手寫的 note（應由數字自動生成）',
+  catKeys.filter(k => R.categories[k].note).map(k => `品類 "${k}" 還留著手寫 note`));
 
 console.log(`\n字典鍵數：zh ${zhKeys.length} / en ${enKeys.length}｜品類 ${catKeys.length} 個`);
 console.log(problems === 0 ? '✅ 靜態檢查全部通過\n' : `❌ 共 ${problems} 個問題\n`);
