@@ -104,10 +104,13 @@ zh: {
   'tip.fbaFee': '依商品重量、尺寸和售價自動估算。費率依售價分三檔（<$10 / $10-$50 / >$50），並含 {fuel}% 燃油附加費。已包含揀貨、包裝、配送、客服和退貨處理。可手動覆蓋。',
   'fba.tierNote': '{tier}（計費重 {w} lb）→ ${base} + {fuel}% 燃油 = ${fee} ｜售價檔 {band}',
   'f.season': '倉儲季節',
-  'tip.season': '1-9 月淡季 ${off}/立方英尺；10-12 月旺季 ${peak}/立方英尺（約 {x} 倍）。',
+  'tip.season': '標準尺寸：1-9 月淡季 ${off}/立方英尺、10-12 月旺季 ${peak}/立方英尺（約 {x} 倍）。大件（Bulky／Extra Large）較便宜：淡季 ${offOs}、旺季 ${peakOs}。系統會依商品的 size tier 自動套用對應費率。',
   'f.season.off': '淡季 1-9月', 'f.season.peak': '旺季 10-12月',
   'f.storageFee': 'FBA 月倉儲費 (每件)',
-  'storage.note': '體積 {cuft} cuft × ${rate} = ${fee}/件/月',
+  'storage.note': '體積 {cuft} cuft × ${rate} = ${fee}/件/月（{cls}費率）',
+  'storage.cls.standard': '標準尺寸',
+  'storage.cls.oversize': '大件',
+  'referral.minApplied': '⚠️ 已套用最低銷售佣金 ${min}（百分比算出來只有 ${raw}）',
   'f.storageMonths': '預估倉儲月數',
   'tip.storageMonths': '商品從入倉到售出的平均存放月數。建議維持 2-3 個月庫存；超過 {days} 天會產生超齡庫存附加費。',
   'f.storageMonths.hint': '倉儲費 = 月倉儲費 × 月數。超過 6 個月會有超齡附加費風險。',
@@ -381,10 +384,13 @@ I18N.en = {
   'tip.fbaFee': 'Estimated automatically from weight, dimensions and price. Rates fall into three price bands (<$10 / $10-$50 / >$50) and include a {fuel}% fuel surcharge. Covers picking, packing, delivery, customer service and returns processing. You can override it manually.',
   'fba.tierNote': '{tier} (billable weight {w} lb) → ${base} + {fuel}% fuel = ${fee} ｜price band {band}',
   'f.season': 'Storage season',
-  'tip.season': 'Jan-Sep off-peak is ${off} per cubic foot; Oct-Dec peak is ${peak} per cubic foot (about {x}× higher).',
+  'tip.season': 'Standard-size: ${off}/cuft off-peak (Jan-Sep), ${peak}/cuft peak (Oct-Dec) — about {x}× higher. Oversize (Bulky / Extra Large) is cheaper: ${offOs} off-peak, ${peakOs} peak. The correct rate is applied automatically from the size tier.',
   'f.season.off': 'Off-peak Jan-Sep', 'f.season.peak': 'Peak Oct-Dec',
   'f.storageFee': 'FBA monthly storage (per unit)',
-  'storage.note': 'Volume {cuft} cuft × ${rate} = ${fee} per unit per month',
+  'storage.note': 'Volume {cuft} cuft × ${rate} = ${fee} per unit per month ({cls} rate)',
+  'storage.cls.standard': 'standard-size',
+  'storage.cls.oversize': 'oversize',
+  'referral.minApplied': '⚠️ Minimum referral fee of ${min} applied (the percentage alone would be only ${raw})',
   'f.storageMonths': 'Est. months in storage',
   'tip.storageMonths': 'Average months from inbound receipt to sale. Aim to hold 2-3 months of inventory; beyond {days} days an aged-inventory surcharge applies.',
   'f.storageMonths.hint': 'Storage = monthly fee × months. Beyond 6 months you risk the aged-inventory surcharge.',
@@ -649,13 +655,20 @@ const Engine = (function () {
     };
   }
 
-  function storageFee(dimsIn, season, R) {
-    const cuft = (dimsIn.l * dimsIn.w * dimsIn.h) / R.storage.cubicInchesPerCuFt;
-    const rate = R.storage[season];
-    return { fee: round2(cuft * rate), cuft: Math.round(cuft * 1000) / 1000, rate };
+  /** 標準尺寸 vs 大件，決定套哪一組倉儲費率 */
+  function storageClassOf(tierKey) {
+    return (tierKey === 'smallStandard' || tierKey === 'largeStandard') ? 'standard' : 'oversize';
   }
 
-  function referralFee(price, catKey, R) {
+  function storageFee(dimsIn, season, tierKey, R) {
+    const cuft = (dimsIn.l * dimsIn.w * dimsIn.h) / R.storage.cubicInchesPerCuFt;
+    const cls = storageClassOf(tierKey);
+    const rate = R.storage[cls][season];
+    return { fee: round2(cuft * rate), cuft: Math.round(cuft * 1000) / 1000, rate, storageClass: cls };
+  }
+
+  /** 佣金的百分比部分，不套最低佣金 */
+  function referralPctPart(price, catKey, R) {
     const cat = R.categories[catKey];
     if (!cat) return price * 0.15;
     if (!cat.tiered) return price * (cat.pct / 100);
@@ -664,8 +677,20 @@ const Engine = (function () {
       if (price <= cat.threshold) return price * (cat.pct / 100);
       return cat.threshold * (cat.pct / 100) + (price - cat.threshold) * (cat.lowPct / 100);
     }
-    // 美妝 / 嬰兒：門檻以下整筆用低費率
+    // 美妝 / 嬰兒 / 健康：門檻以下整筆用低費率
     return price <= cat.threshold ? price * (cat.lowPct / 100) : price * (cat.pct / 100);
+  }
+
+  /**
+   * 實際銷售佣金 = max(百分比計算值, 最低銷售佣金)
+   * 官方北美費用表每個品類都標「最低銷售佣金 $0.30」，低價商品會被下限咬到。
+   * 售價為 0 時不收佣金（沒有交易），不套下限。
+   */
+  function referralFee(price, catKey, R) {
+    const pctPart = referralPctPart(price, catKey, R);
+    if (price <= 0) return 0;
+    const min = (R.minReferralFee && R.minReferralFee.usd) || 0;
+    return Math.max(pctPart, Math.min(min, price));
   }
 
   /** 有效佣金比例 (%)；price 為 0 時回品類名目費率，避免 NaN */
@@ -845,8 +870,8 @@ const Engine = (function () {
 
   return {
     OZ_PER_G, IN_PER_CM, G_PER_LB, OZ_PER_LB,
-    pickBand, priceBandOf, classifyTier, fbaFee, storageFee,
-    referralFee, effectiveReferralPct, refundAdminFee, inboundFee, sendRate, volumetricKg,
+    pickBand, priceBandOf, classifyTier, fbaFee, storageFee, storageClassOf,
+    referralFee, referralPctPart, effectiveReferralPct, refundAdminFee, inboundFee, sendRate, volumetricKg,
     promoSavings, computeAll, computeTw, round2
   };
 })();
@@ -1140,8 +1165,9 @@ function applyI18n() {
   document.querySelectorAll('[data-tip-i18n]').forEach(el => {
     el.setAttribute('data-tip', t(el.getAttribute('data-tip-i18n'), {
       fuel: R.fuelSurcharge.pct,
-      off: R.storage.offpeak.toFixed(2), peak: R.storage.peak.toFixed(2),
-      x: (R.storage.peak / R.storage.offpeak).toFixed(1),
+      off: R.storage.standard.offpeak.toFixed(2), peak: R.storage.standard.peak.toFixed(2),
+      x: (R.storage.standard.peak / R.storage.standard.offpeak).toFixed(1),
+      offOs: R.storage.oversize.offpeak.toFixed(2), peakOs: R.storage.oversize.peak.toFixed(2),
       days: R.storage.agedSurchargeFromDays,
       pct: R.refundAdmin.pct, cap: R.refundAdmin.cap.toFixed(2),
       div: R.fbm.volumetricDivisor
@@ -1159,8 +1185,8 @@ function applyI18n() {
   $('appSubtitle').textContent = t('app.subtitle.' + State.origin, { ver: R.meta.version });
   $('modeDesc').textContent = t('modeDesc.' + State.mode);
   $('accountFeeLabel').textContent = R.accountFee.professional.toFixed(2);
-  $('rateOffpeak').textContent = R.storage.offpeak.toFixed(2);
-  $('ratePeak').textContent = R.storage.peak.toFixed(2);
+  $('rateOffpeak').textContent = R.storage.standard.offpeak.toFixed(2);
+  $('ratePeak').textContent = R.storage.standard.peak.toFixed(2);
   $('refundNote').textContent = t('note.refundAdmin', { pct: R.refundAdmin.pct, cap: R.refundAdmin.cap.toFixed(2) });
   $('brandRebateNote').textContent = t('note.rebate.' + (State.rebateLevel === 'off' ? 'off' : 't' + State.rebateLevel));
 
@@ -1433,17 +1459,27 @@ function recalc() {
   $('fbaTierOptimize').classList.toggle('js-hidden', !hint);
 
   /* --- 自動估算：倉儲費 / Inbound --- */
-  const stor = Engine.storageFee(dimsIn, State.season, R);
+  const stor = Engine.storageFee(dimsIn, State.season, fbaInfo.tier, R);
   $('storageFee').value = stor.fee;
   $('storageNote').textContent = t('storage.note', {
-    cuft: stor.cuft.toFixed(3), rate: stor.rate.toFixed(2), fee: stor.fee.toFixed(2)
+    cuft: stor.cuft.toFixed(3), rate: stor.rate.toFixed(2), fee: stor.fee.toFixed(2),
+    cls: t('storage.cls.' + stor.storageClass)
   });
   $('inboundFee').value = Engine.inboundFee(fbaInfo.tier, R);
 
   /* --- 佣金 / 退款管理費 --- */
   const effPct = Engine.effectiveReferralPct(price, catKey, R);
   $('referralPct').value = effPct.toFixed(1);
-  $('referralNote').textContent = categoryNote(catKey);
+  // 最低銷售佣金咬到時要說清楚，否則使用者看到有效費率突然變高會以為算錯
+  const rawRef = Engine.referralPctPart(price, catKey, R);
+  const actualRef = Engine.referralFee(price, catKey, R);
+  let refNote = esc(categoryNote(catKey));
+  if (price > 0 && actualRef - rawRef > 0.0001) {
+    refNote += '<br><span style="color:var(--yellow);">' +
+      esc(t('referral.minApplied', { min: R.minReferralFee.usd.toFixed(2), raw: rawRef.toFixed(2) })) +
+      '</span>';
+  }
+  $('referralNote').innerHTML = refNote;
   $('refundAdminFee').value = Engine.refundAdminFee(price, catKey, R).toFixed(2);
 
   /* --- 頭程明細 --- */

@@ -42,8 +42,15 @@ function near(name, a, b, tol = 0.005) {
  *    你更新費率後這些比對自動跳過，不會產生假失敗。
  *    其餘區塊（B-2 之後）全部從 rates.js 讀值，任何費率版本都會跑。
  * ===========================================================================*/
-const BASELINE_VERSION = '2026.04';
-const isBaseline = R.meta.version === BASELINE_VERSION;
+/**
+ * 逐組判斷 vintage，而不是看 meta.version。
+ * 各組費率的更新步調不同（例如品類佣金已在 2026-08-27 核對，
+ * FBA 配送費表還是 2026-04），所以每個 parity 區塊各自看自己那組的 _verified。
+ * 只要某組還是 2026-04，就對它跑「與 v1.1 逐項相符」的防護；一旦更新就自動跳過。
+ */
+const BASELINE = '2026-04';
+const fbaIsBaseline = R.fba._verified === BASELINE;
+const catIsBaseline = R.categories._verified === BASELINE;
 
 const ORIG_CATEGORIES = {
   home: { pct: 15, tiered: false }, sports: { pct: 15, tiered: false }, toys: { pct: 15, tiered: false },
@@ -155,8 +162,8 @@ const dimSets = [
 ];
 const prices = [5, 9.99, 10, 25.99, 50, 50.01, 120];
 
-if (!isBaseline) {
-  console.log(`   ⏭  跳過：rates.js 已更新到 ${R.meta.version}（基準為 ${BASELINE_VERSION}），`);
+if (!fbaIsBaseline) {
+  console.log(`   ⏭  跳過：fba._verified 已更新為 ${R.fba._verified}（基準 ${BASELINE}），`);
   console.log('      與 v1.1 寫死費率表的比對不再適用。這是預期行為，不是失敗。');
 } else {
   let feeChecks = 0, feeMismatch = 0, tierMismatch = 0;
@@ -193,52 +200,68 @@ if (!isBaseline) {
  * ===========================================================================*/
 console.log('\n── B. 佣金 / 倉儲 / 退款管理費 ──');
 
-if (isBaseline) {
-  let refMismatch = 0;
+if (catIsBaseline) {
+  // v1.1 沒有實作「最低銷售佣金 $0.30」，所以只在下限沒咬到的價位比對百分比邏輯。
+  // 下限本身另外測（見 C9）。health 已改為階梯品類，也是刻意的差異，排除。
+  let refMismatch = 0, refChecked = 0;
+  const minFee = R.minReferralFee.usd;
   for (const cat of Object.keys(ORIG_CATEGORIES)) {
+    if (cat === 'health') continue;   // 刻意改為階梯 8%/15%，見 C10
     for (const p of [0.01, 5, 9.99, 10, 10.01, 25, 199, 200, 200.01, 249, 250, 250.01, 500, 1000]) {
-      const a = origReferral(p, cat), b = Engine.referralFee(p, cat, R);
+      const a = origReferral(p, cat);
+      if (a < minFee) continue;       // 下限咬到的價位不比對
+      refChecked++;
+      const b = Engine.referralFee(p, cat, R);
       if (Math.abs(a - b) > 1e-9) { refMismatch++; failures.push(`referral ${cat} @ $${p}: ${a} vs ${b}`); }
     }
   }
-  ok('銷售佣金與 v1.1 完全相符（含階梯費率）', refMismatch === 0, `${refMismatch} 組不符`);
+  ok(`銷售佣金百分比邏輯與 v1.1 相符（${refChecked} 組，最低佣金未咬到的價位）`,
+    refMismatch === 0, `${refMismatch} 組不符`);
 } else {
-  console.log('   ⏭  跳過與 v1.1 的佣金 parity 比對');
+  console.log(`   ⏭  跳過與 v1.1 的佣金 parity 比對（categories._verified = ${R.categories._verified}）`);
 }
 
 // 階梯佣金的公式行為（不綁任何具體費率，永遠有效）
 for (const catKey of Object.keys(R.categories).filter(k => !k.startsWith('_'))) {
   const c = R.categories[catKey];
   if (!c.tiered) {
-    near(`${catKey}：非階梯，$100 收 ${c.pct}%`, Engine.referralFee(100, catKey, R), 100 * c.pct / 100, 1e-9);
+    near(`${catKey}：非階梯，$100 收 ${c.pct}%`, Engine.referralPctPart(100, catKey, R), 100 * c.pct / 100, 1e-9);
     continue;
   }
   const th = c.threshold;
   if (c.above) {
-    // 門檻以下用高費率；超過的部分才降到 lowPct
-    near(`${catKey}：$${th}（門檻）收 ${c.pct}%`, Engine.referralFee(th, catKey, R), th * c.pct / 100, 1e-9);
+    near(`${catKey}：$${th}（門檻）收 ${c.pct}%`, Engine.referralPctPart(th, catKey, R), th * c.pct / 100, 1e-9);
     near(`${catKey}：$${th * 2} = 門檻內 ${c.pct}% + 超出 ${c.lowPct}%`,
-      Engine.referralFee(th * 2, catKey, R), th * c.pct / 100 + th * c.lowPct / 100, 1e-9);
+      Engine.referralPctPart(th * 2, catKey, R), th * c.pct / 100 + th * c.lowPct / 100, 1e-9);
   } else {
-    // 門檻以下整筆用低費率，超過就整筆跳高費率
-    near(`${catKey}：$${th}（門檻）整筆收 ${c.lowPct}%`, Engine.referralFee(th, catKey, R), th * c.lowPct / 100, 1e-9);
+    near(`${catKey}：$${th}（門檻）整筆收 ${c.lowPct}%`, Engine.referralPctPart(th, catKey, R), th * c.lowPct / 100, 1e-9);
     near(`${catKey}：$${th + 1} 整筆跳到 ${c.pct}%`,
-      Engine.referralFee(th + 1, catKey, R), (th + 1) * c.pct / 100, 1e-9);
+      Engine.referralPctPart(th + 1, catKey, R), (th + 1) * c.pct / 100, 1e-9);
   }
 }
 
-// 倉儲費公式：體積(cuft) × 當季費率，費率從 rates.js 讀
+// 倉儲費公式：體積(cuft) × 當季 × 標準/大件費率，全部從 rates.js 讀
 for (const [l, w, h] of dimSets) {
   const cuft = (l * w * h) / R.storage.cubicInchesPerCuFt;
-  near(`倉儲費 ${l}x${w}x${h} 淡季 = ${R.storage.offpeak}/cuft`,
-    Engine.storageFee({ l, w, h }, 'offpeak', R).fee, Math.round(cuft * R.storage.offpeak * 100) / 100);
+  for (const [tier, cls] of [['largeStandard', 'standard'], ['extraLarge', 'oversize']]) {
+    const rate = R.storage[cls].offpeak;
+    const r = Engine.storageFee({ l, w, h }, 'offpeak', tier, R);
+    near(`倉儲費 ${l}x${w}x${h} ${cls} 淡季 = ${rate}/cuft`, r.fee, Math.round(cuft * rate * 100) / 100);
+    ok(`倉儲費 ${l}x${w}x${h} 正確歸類為 ${cls}`, r.storageClass === cls, r.storageClass);
+  }
 }
-near(`倉儲費旺季 = 體積 × ${R.storage.peak}/cuft`,
-  Engine.storageFee({ l: 18, w: 14, h: 8 }, 'peak', R).fee,
-  Math.round(((18 * 14 * 8) / R.storage.cubicInchesPerCuFt) * R.storage.peak * 100) / 100);
+near(`標準尺寸旺季 = 體積 × ${R.storage.standard.peak}/cuft`,
+  Engine.storageFee({ l: 18, w: 14, h: 8 }, 'peak', 'largeStandard', R).fee,
+  Math.round(((18 * 14 * 8) / R.storage.cubicInchesPerCuFt) * R.storage.standard.peak * 100) / 100);
 ok('旺季倉儲費高於淡季',
-  Engine.storageFee({ l: 18, w: 14, h: 8 }, 'peak', R).fee >
-  Engine.storageFee({ l: 18, w: 14, h: 8 }, 'offpeak', R).fee);
+  Engine.storageFee({ l: 18, w: 14, h: 8 }, 'peak', 'largeStandard', R).fee >
+  Engine.storageFee({ l: 18, w: 14, h: 8 }, 'offpeak', 'largeStandard', R).fee);
+ok('大件倉儲費低於標準尺寸（同體積同季節）',
+  Engine.storageFee({ l: 30, w: 20, h: 16 }, 'peak', 'extraLarge', R).fee <
+  Engine.storageFee({ l: 30, w: 20, h: 16 }, 'peak', 'largeStandard', R).fee);
+ok('Small/Large Standard 歸標準；Bulky/Extra Large 歸大件',
+  ['smallStandard', 'largeStandard'].every(t => Engine.storageClassOf(t) === 'standard') &&
+  ['smallBulky', 'largeBulky', 'extraLarge'].every(t => Engine.storageClassOf(t) === 'oversize'));
 
 // 退款管理費公式 = min(佣金 × pct, cap)，兩個參數都從 rates.js 讀
 for (const p of [5, 25, 100, 200, 500, 5000]) {
@@ -364,6 +387,60 @@ ok('C8 基礎版同樣不計入營運成本',
 ok('C8 進階版才計入營運成本',
   Engine.computeAll({ ...promoIn, mode: 'advanced', promos: {} }, R).adsCost > 0);
 
+// C9. 最低銷售佣金 $0.30 —— v1.1 完全沒實作，低價商品佣金被低估
+//     來源：gs.amazon.com.tw/pricing 北美費用表，每個品類都標「最低銷售佣金 $0.30」
+{
+  const min = R.minReferralFee.usd;
+  // $2 的電子產品：8% = $0.16，低於下限，應收 $0.30
+  near(`C9 $2 電子產品（8% = $0.16）實收下限 $${min}`, Engine.referralFee(2, 'electronics', R), min, 1e-9);
+  near('C9 百分比部分本身仍是 $0.16（未套下限）', Engine.referralPctPart(2, 'electronics', R), 0.16, 1e-9);
+  ok('C9 v1.1 在此價位會低估', origReferral(2, 'electronics') < min);
+  // 下限沒咬到時不影響
+  near('C9 $25.99 居家（15% = $3.90）不受下限影響',
+    Engine.referralFee(25.99, 'home', R), 25.99 * 0.15, 1e-9);
+  // 找出每個品類的「下限咬合價」，確認高於該價位就回歸百分比
+  for (const cat of ['electronics', 'home', 'beauty', 'jewelry']) {
+    const c = R.categories[cat];
+    const pct = (c.tiered && !c.above ? c.lowPct : c.pct) / 100;
+    const breakeven = min / pct;
+    ok(`C9 ${cat}：售價低於 $${breakeven.toFixed(2)} 時套下限`,
+      Math.abs(Engine.referralFee(breakeven * 0.5, cat, R) - min) < 1e-9);
+    ok(`C9 ${cat}：售價高於該點時回歸百分比`,
+      Engine.referralFee(breakeven * 2, cat, R) > min);
+  }
+  // 佣金不該超過售價本身（極低價的防呆）
+  ok('C9 佣金不超過售價（$0.10 商品）', Engine.referralFee(0.10, 'home', R) <= 0.10 + 1e-9);
+  ok('C9 售價 $0 不收佣金', Engine.referralFee(0, 'home', R) === 0);
+  // 退款管理費會跟著下限一起變
+  near('C9 退款管理費用含下限的佣金計算',
+    Engine.refundAdminFee(2, 'electronics', R), Math.min(min * 0.20, R.refundAdmin.cap), 1e-9);
+}
+
+// C10. health 品類：官方表把「美妝和個護健康」列為 ≤$10 收 8%、>$10 收 15% 的階梯品類，
+//      v1.1 卻寫成固定 15%，$10 以下的健康個護商品佣金被高估近一倍
+{
+  const c = R.categories.health;
+  ok('C10 health 已改為階梯品類', c.tiered === true && c.threshold === 10 && c.lowPct === 8);
+  near('C10 $9 健康個護收 8% = $0.72', Engine.referralFee(9, 'health', R), 9 * 0.08, 1e-9);
+  near('C10 $12 健康個護收 15% = $1.80', Engine.referralFee(12, 'health', R), 12 * 0.15, 1e-9);
+  ok('C10 v1.1 在 $9 會算成 15%（高估）', Math.abs(origReferral(9, 'health') - 9 * 0.15) < 1e-9);
+  ok('C10 修正後與 beauty 一致（官方同屬一個階梯品類）',
+    Math.abs(Engine.referralFee(9, 'health', R) - Engine.referralFee(9, 'beauty', R)) < 1e-9);
+}
+
+// C11. 大件倉儲費 —— v1.1 對所有 size tier 一律套標準尺寸費率，大件被高估
+{
+  const dims = { l: 30, w: 20, h: 16 };   // 大件
+  const std = Engine.storageFee(dims, 'peak', 'largeStandard', R);
+  const os = Engine.storageFee(dims, 'peak', 'extraLarge', R);
+  ok('C11 大件旺季倉儲費低於標準尺寸', os.fee < std.fee, `${os.fee} vs ${std.fee}`);
+  near(`C11 大件旺季費率 = $${R.storage.oversize.peak}/cuft`, os.rate, R.storage.oversize.peak, 1e-9);
+  const overEstimate = std.fee - os.fee;
+  ok(`C11 v1.1 對此商品旺季每月每件高估 $${overEstimate.toFixed(2)}`, overEstimate > 0.5);
+  // 標準尺寸不受影響
+  near('C11 標準尺寸費率不變', std.rate, R.storage.standard.peak, 1e-9);
+}
+
 /* =============================================================================
  * D. 資料完整性 — rates.js 有沒有漏東西
  * ===========================================================================*/
@@ -420,13 +497,13 @@ ok('E 預設商品判為 Large Standard', dFba.tier === 'largeStandard', dFba.ti
 const basic = Engine.computeAll({
   mode: 'basic', origin: 'tw', price: 25.99, cogs: 2.50, monthlySales: 200, category: 'home',
   brandRebatePct: 0, weightG: 280, useShipPerPiece: false, shipRate: 1.0, shipPerPiece: 0,
-  fbaFee: dFba.fee, storageFee: Engine.storageFee(dIn, 'offpeak', R).fee, storageMonths: 3,
+  fbaFee: dFba.fee, storageFee: Engine.storageFee(dIn, 'offpeak', dFba.tier, R).fee, storageMonths: 3,
   inboundFee: Engine.inboundFee(dFba.tier, R),
   fbmShip: 0, fbmDuty: 0, fbmPack: 0, fbmCs: 0,
   tacos: 12, vineFee: 0, returnRate: 3, refundAdminFee: 0.78, importDuty: 0, otherFee: 0.5, promos: {}
 }, R);
 // 基礎版：只有 COGS + 頭程 + FBA + 倉儲 + Inbound + 佣金
-const expectBasic = 2.50 + 0.28 + dFba.fee + Engine.storageFee(dIn, 'offpeak', R).fee * 3
+const expectBasic = 2.50 + 0.28 + dFba.fee + Engine.storageFee(dIn, 'offpeak', dFba.tier, R).fee * 3
   + Engine.inboundFee(dFba.tier, R) + Engine.referralFee(25.99, 'home', R);
 near('E 基礎版總成本 = 手算值', basic.totalCost, expectBasic, 0.01);
 ok('E 基礎版不含廣告 / 帳戶費 / 退貨',
@@ -437,7 +514,7 @@ near('E 月營收 = 售價 × 月銷量', basic.monthlyRevenue, 25.99 * 200, 1e-
 const adv = Engine.computeAll({
   mode: 'advanced', origin: 'tw', price: 25.99, cogs: 2.50, monthlySales: 200, category: 'home',
   brandRebatePct: 0, weightG: 280, useShipPerPiece: false, shipRate: 1.0, shipPerPiece: 0,
-  fbaFee: dFba.fee, storageFee: Engine.storageFee(dIn, 'offpeak', R).fee, storageMonths: 3,
+  fbaFee: dFba.fee, storageFee: Engine.storageFee(dIn, 'offpeak', dFba.tier, R).fee, storageMonths: 3,
   inboundFee: Engine.inboundFee(dFba.tier, R),
   fbmShip: 0, fbmDuty: 0, fbmPack: 0, fbmCs: 0,
   tacos: 12, vineFee: 0, returnRate: 3, refundAdminFee: 0.78, importDuty: 0, otherFee: 0.5, promos: {}

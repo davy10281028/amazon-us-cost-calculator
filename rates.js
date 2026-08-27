@@ -17,13 +17,13 @@ window.AMZ_RATES = {
    * META — UI 右上角的「費率版本」徽章會讀這裡
    * -------------------------------------------------------------------------*/
   meta: {
-    version: '2026.04',           // 費率基準期（不是程式版本）
-    lastUpdated: '2026-04-22',    // 這批費率最後一次人工核對的日期
+    version: '2026.04+partial',   // 費率基準期（不是程式版本）
+    lastUpdated: '2026-04-22',    // FBA 配送費那批的核對日期（最舊的一項為準）
     nextReviewDue: '2026-10-01',  // 下次該複查的日期；過期 UI 會轉紅色警示
     staleAfterDays: 120,          // 超過這個天數沒更新就顯示警示
     note: {
-      zh: '費率沿用 2026-04 官方擷取版本，尚未針對 2026 下半年重新核對。',
-      en: 'Rates carried over from the 2026-04 official capture; not yet re-verified for H2 2026.'
+      zh: '2026-08-27 以官方公開頁（gs.amazon.com.tw/pricing）核對並修正：品類佣金、最低佣金 $0.30、大件倉儲費、health 階梯。FBA 配送費表與 SEND／貨代費率仍為 2026-04 版本，需登入 Seller Central 複查（見 docs/UPDATING-RATES.md 第 2 節）。',
+      en: 'On 2026-08-27, verified and corrected against the official public page (gs.amazon.com.tw/pricing): category referral fees, the $0.30 minimum referral fee, oversize storage rates, and the health tier. The FBA fulfilment fee table and the SEND / forwarder rates are still the 2026-04 vintage and need a Seller Central login to re-verify (see section 2 of docs/UPDATING-RATES.md).'
     }
   },
 
@@ -66,7 +66,8 @@ window.AMZ_RATES = {
     sports:      { pct: 15, tiered: false, label: { zh: 'Sports & Outdoors 運動戶外',      en: 'Sports & Outdoors' } },
     toys:        { pct: 15, tiered: false, label: { zh: 'Toys & Games 玩具',              en: 'Toys & Games' } },
     pet:         { pct: 15, tiered: false, label: { zh: 'Pet Supplies 寵物用品',          en: 'Pet Supplies' } },
-    health:      { pct: 15, tiered: false, label: { zh: 'Health & Household 健康家用',    en: 'Health & Household' } },
+    health:      { pct: 15, tiered: true, threshold: 10,  lowPct: 8,  above: false,
+                   label: { zh: 'Health & Personal Care 健康個護', en: 'Health & Personal Care' } },
     office:      { pct: 15, tiered: false, label: { zh: 'Office Products 辦公用品',       en: 'Office Products' } },
     lawn:        { pct: 15, tiered: false, label: { zh: 'Lawn & Garden 庭院園藝',         en: 'Lawn & Garden' } },
     beauty:      { pct: 15, tiered: true, threshold: 10,  lowPct: 8,  above: false,
@@ -88,13 +89,24 @@ window.AMZ_RATES = {
     books:       { pct: 15, tiered: false, extraPerItem: 1.80,
                    label: { zh: 'Books 書籍',                      en: 'Books' } },
     _source: 'https://sellercentral.amazon.com/help/hub/reference/external/GTG4BAWSY39Z98EN',
-    _source2: 'https://gs.amazon.com.tw/pricing',
-    _verified: '2026-04'
+    _source2: 'https://gs.amazon.com.tw/pricing（北美費用表，2026-08-27 逐列核對）',
+    _verified: '2026-08-27'
   },
 
   /* ---------------------------------------------------------------------------
    * 退款管理費 = min(佣金 × pct, cap)
    * -------------------------------------------------------------------------*/
+  /* ---------------------------------------------------------------------------
+   * 最低銷售佣金 —— 官方北美費用表每個品類都標註「最低銷售佣金 $0.30」
+   * 佣金取「售價 × 費率」與此值的較大者。低價商品會被這個下限咬到。
+   * 例：$2 的電子產品 8% = $0.16 → 實收 $0.30
+   * -------------------------------------------------------------------------*/
+  minReferralFee: {
+    usd: 0.30,
+    _source: 'https://gs.amazon.com.tw/pricing（北美費用表「最低銷售佣金」欄）',
+    _verified: '2026-08-27'
+  },
+
   refundAdmin: {
     pct: 20,
     cap: 5.00,
@@ -193,12 +205,31 @@ window.AMZ_RATES = {
    * FBA 月倉儲費 (USD / 立方英尺 / 月)
    * -------------------------------------------------------------------------*/
   storage: {
-    offpeak: 0.78,   // 1–9 月
-    peak: 2.40,      // 10–12 月
+    // 標準尺寸 = Small/Large Standard；大件 = Small/Large Bulky、Extra Large
+    standard: {
+      offpeak: 0.78,   // 1–9 月  ⚠️ 見下方 _conflict
+      peak: 2.40       // 10–12 月
+    },
+    oversize: {
+      offpeak: 0.56,   // 1–9 月
+      peak: 1.40       // 10–12 月
+    },
     cubicInchesPerCuFt: 1728,
     agedSurchargeFromDays: 181,
+
+    // 官方公開頁（gs.amazon.com.tw/pricing）列的標準尺寸淡季是 $0.87，
+    // 但原版 v1.1 從 2026-04 擷取的是 $0.78。旺季 $2.40 與大件 $0.56/$1.40
+    // 兩邊一致，只有這一格對不上。未經 Seller Central 確認前保留 $0.78 不動。
+    _conflict: {
+      field: 'standard.offpeak',
+      current: 0.78,
+      candidate: 0.87,
+      candidateSource: 'https://gs.amazon.com.tw/pricing（該頁其他內容為 2023/24 年份，可信度存疑）',
+      action: '需登入 Seller Central G200612770 確認'
+    },
     _source: 'https://sellercentral.amazon.com/help/hub/reference/external/G200612770',
-    _verified: '2026-04'
+    _source2: 'https://gs.amazon.com.tw/pricing（大件費率、181 天超齡門檻由此確認）',
+    _verified: '2026-04（標準淡季待複查）；大件費率 2026-08-27 由公開頁確認'
   },
 
   /* ---------------------------------------------------------------------------

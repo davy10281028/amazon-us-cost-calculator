@@ -28,14 +28,15 @@ node test/lint.js
 | 1 | `fba.smallStandard.bands`<br>`fba.largeStandard.bands`<br>`fba.largeStandard.over`<br>`fba.bulky`<br>`fba.extraLarge.bands` | 🔒 [Seller Central GABBX6GZPA8MSZGW](https://sellercentral.amazon.com/help/hub/reference/external/GABBX6GZPA8MSZGW) | **最容易變、也最影響結果的一項。**<br>三個售價檔（`low` / `mid` / `high`）的每個重量級距都要對。<br>注意 Amazon 有時只調其中一檔。 |
 | 2 | `fuelSurcharge.pct` | 同上 | 目前 3.5%。Amazon 曾多次調整燃油附加費，**每次更新都要確認這個數字還在不在、有沒有變**。 |
 | 3 | `sizeTiers.*` | 同上（Product size tiers 段） | 尺寸／重量門檻。變動頻率低，但 2024 年 Amazon 改過一次，不要假設不變。 |
-| 4 | `storage.offpeak`<br>`storage.peak` | 🔒 [Seller Central G200612770](https://sellercentral.amazon.com/help/hub/reference/external/G200612770) | 淡季 / 旺季每立方英尺費率。**旺季（10-12 月）通常在 9 月公告**，所以 Q3 那次更新特別重要。 |
+| 4 | `storage.standard.*`<br>`storage.oversize.*` | 🔒 [Seller Central G200612770](https://sellercentral.amazon.com/help/hub/reference/external/G200612770) | 淡季 / 旺季每立方英尺費率，**標準尺寸與大件是兩組不同數字**。<br>**旺季（10-12 月）通常在 9 月公告**，所以 Q3 那次更新特別重要。<br>⚠️ `storage._conflict` 記錄了 standard.offpeak 的未解衝突，優先處理。 |
+| 4b | `minReferralFee.usd` | [gs.amazon.com.tw/pricing](https://gs.amazon.com.tw/pricing)（北美費用表「最低銷售佣金」欄） | 目前 $0.30。低價商品的佣金會被這個下限咬到。 |
 | 5 | `storage.agedSurchargeFromDays` | 同上 | 超齡庫存起算天數（目前 181 天）。 |
 | 6 | `categories.*.pct`<br>`categories.*.threshold`<br>`categories.*.lowPct` | [Amazon 全球開店費率頁](https://gs.amazon.com.tw/pricing)<br>🔒 [Seller Central GTG4BAWSY39Z98EN](https://sellercentral.amazon.com/help/hub/reference/external/GTG4BAWSY39Z98EN) | 各品類佣金 %。<br>階梯費率的**門檻金額**（美妝 $10、家具 $200、珠寶 $250）也要對。<br>**只改數字就好** —— 下拉選單標籤和「≤$10 收 8%」那段說明文字都是自動生成的。 |
 | 7 | `refundAdmin.pct`<br>`refundAdmin.cap` | [gs.amazon.com.tw/pricing](https://gs.amazon.com.tw/pricing) | 目前 min(佣金 × 20%, $5.00)。 |
 | 8 | `inboundPlacement.*` | 🔒 [Seller Central GC3Q44PBK8SQ2DEN](https://sellercentral.amazon.com/help/hub/reference/external/GC3Q44PBK8SQ2DEN) | 五個 size tier 各一個數字。 |
 | 9 | `accountFee.professional` | [gs.amazon.com.tw/pricing](https://gs.amazon.com.tw/pricing) | 幾乎不變（$39.99），但順手看一下。 |
 | 10 | `send.services.*` | Amazon SEND 官方費率表（**問 SEND 團隊或看 Seller Central 站內公告**） | **UPS 快遞費率含燃油費與旺季附加費，季度會動。**<br>空運／海運為金匯國際物流 (Amazon SPN) 報價，區域（西/中/東）三組都要更新。<br>海運 `cbmRates` 是按 CBM 計價，`bands` 只是換算給使用者比較用。 |
-| 11 | `freight.tw.*` / `freight.cn.*` | 向 2-3 家貨代詢價（[Amazon 認證服務商名單](https://gs.amazon.com.tw/service-provider)） | **這不是官方費率，是市場行情。**<br>海運／空運／快遞每公斤價，以及 `hint` 裡寫的區間文字要一起改。 |
+| 11 | `freight.tw.*` / `freight.cn.*` | 向 2-3 家貨代詢價（[Amazon 認證服務商名單](https://gs.amazon.com.tw/service-provider)） | **這不是官方費率，是市場行情，沒有任何公開頁面可以抓。**<br>海運／空運／快遞每公斤價，以及 `hint` 裡寫的區間文字要一起改。<br>方向性參考可看 [Drewry WCI](https://www.drewry.co.uk/supply-chain-advisors/supply-chain-expertise/world-container-index-assessed-by-drewry) 或 Freightos FBX 的貨櫃現貨指數，但那是港到港整櫃價，**不等於每公斤 DDP 到 FBA 倉**的價格，只能用來判斷「該調漲還是調降」，不能直接填。 |
 | 12 | `fbm.methods.*` | 同上，向貨代／海外倉詢價 | 每件配送費 `ship`、公式 `baseUsd` + `perKgUsd`、關稅 `dutyPctOfPrice`。<br>`referenceTable` 那張參考表也要同步。 |
 | 13 | `fbm.volumetricDivisor` | 快遞公司公告 | 國際快遞材積重除數，目前 5000。DHL/FedEx/UPS 偶有調整。 |
 | 14 | `incentives.nsi.*`<br>`incentives.newSelection.*`<br>`incentives.brandBonus.*` | [新賣家入門大禮包](https://gs.amazon.com.tw/new-seller-incentive)<br>[FBA New Selection](https://sell.amazon.com/blog/fba-new-selection-program)<br>[優惠頁](https://gs.amazon.com.tw/benefits) | 額度金額、件數上限、天數窗口。**方案改版頻繁，建議每季必看。** |
@@ -48,6 +49,27 @@ node test/lint.js
 
 這些是從原版 v1.1 沿用下來、看起來可疑但沒有官方頁面可即時確認的數字。
 **下次更新請優先處理，確認後把這一節對應的項目刪掉。**
+
+> **需要什麼才能收掉這一節：一組能登入 Seller Central 的憑證。**
+> 下面每一項都只在 🔒 頁面上有權威答案。`sellercentral.amazon.com/help/hub/reference/external/...`
+> 這些 URL 用 curl 抓會回 200 但內容是 JS 殼（實際 0 筆費率資料）；
+> `gs.amazon.com.tw/pricing` 雖然公開，但**它的 FBA 費率區塊是 2023/24 年份**
+> （頁面自己寫「將於 2024 年 1 月 15 日恢復至非旺季費率」），不能拿來更新 FBA 表。
+
+### 🔴 最高優先：`fba.*` 整張表的結構存疑
+
+`rates.js` 目前的 FBA 配送費結構是「售價三檔（<$10 / $10-$50 / >$50）+ 3.5% 燃油附加費」。
+但官方公開頁列的結構是**「非旺季／旺季」兩檔 + 低價 FBA 費率（比標準低 $0.77）**，
+而且整頁完全沒有提到燃油附加費。兩者不是同一套東西。
+
+再加上下面那個「high 檔比 mid 檔便宜」的內部矛盾，合理懷疑原版 v1.1 的
+這張表是憑印象填的或抄錯來源。**在登入 Seller Central 確認之前不要改數字，
+但也不要假設它是對的。**
+
+需要確認三件事：
+1. 現行結構到底是「售價三檔」還是「非旺季/旺季 + 低價 FBA」？
+2. 3.5% 燃油附加費是否真的存在、是否仍生效？
+3. 若結構不同，`Engine.fbaFee()` 的分檔邏輯也要一起改（不只是換數字）。
 
 ### 🔴 `fba.bulky.small` 的 high band 低於 mid band
 
@@ -71,6 +93,12 @@ Small Bulky 在「售價 > $50」這一檔是 `$7.55`，比「$10-$50」的 `$9.
 這個 `1363 kg/cbm` 是很高的密度假設，一般貨物遠低於此，會**低估**海運成本。
 → 若要更準，建議改成讓使用者直接輸入 CBM，或用更貼近實際的密度（例如 200-400 kg/cbm）。
 
+### 🟡 `storage.standard.offpeak`：$0.78 還是 $0.87
+
+`rates.js` 寫 `0.78`（原版 2026-04 擷取），官方公開頁寫 `$0.87`。
+旺季 `$2.40` 和大件 `$0.56 / $1.40` 兩邊完全一致，**只有這一格對不上**。
+已記錄在 `storage._conflict`，保留 `0.78` 未動。→ 查 🔒 G200612770 定案。
+
 ### 🟡 `fba.largeStandard` 的體積重門檻
 
 目前只要 `max(實重, 體積重) <= 20 lb` 就算 Large Standard。
@@ -78,6 +106,24 @@ Amazon 實際規則是**實重 1 lb 以下的商品不套用體積重**，這裡
 影響範圍：輕但體積大的商品（例如枕頭）可能被高估。
 
 ---
+
+## 2b. 2026-08-27 已完成的核對
+
+以官方公開頁 [gs.amazon.com.tw/pricing](https://gs.amazon.com.tw/pricing)
+的「北美費用表」逐列核對，確認並修正了：
+
+| 項目 | 結果 |
+|---|---|
+| 18 個品類的佣金 % 與階梯門檻 | 逐列核對，除 `health` 外全部相符 |
+| `health` | **修正**：官方把「美妝和個護健康」列為 ≤$10 收 8%、>$10 收 15% 的階梯品類，原版寫固定 15%。$10 以下的健康個護商品佣金原本被高估近一倍 |
+| `minReferralFee` | **新增**：官方每個品類都標「最低銷售佣金 $0.30」，原版完全沒實作，低價商品佣金被低估 |
+| `storage.oversize` | **新增**：官方倉儲費分「標準尺寸」與「大件」兩組（大件 $0.56 / $1.40），原版對所有 size tier 一律套標準費率，大件被高估 |
+| `storage.agedSurchargeFromDays` | 確認 181 天 |
+| `accountFee.professional` | 確認 $39.99/月（另有個人計畫 $0.99/件） |
+| 媒介類 $1.80 交易手續費 | 確認 |
+
+**還沒動的**：`fba.*`（配送費表）、`send.*`（SEND 費率）、`freight.*` 與 `fbm.*`（貨代行情）、
+`storage.standard.offpeak`。原因見第 2 節。
 
 ## 3. 改完之後
 
@@ -107,15 +153,26 @@ node test/engine.test.js   # 引擎邏輯 + 資料完整性
 node test/lint.js          # i18n / element id / 中英字典對齊
 ```
 
-**兩個都要看到「全部通過」。** 只要 `meta.version` 已經改掉，
-測試會自動跳過「與原版 v1.1 寫死費率表的比對」（A 區塊和 B-1），
-不會產生假失敗 —— 你會看到：
+**兩個都要看到「全部通過」。**
+
+與原版 v1.1 的 parity 比對是**逐組獨立判斷**的，看的是各組自己的 `_verified`：
+
+| 測試區塊 | 只在這個條件成立時執行 |
+|---|---|
+| A（FBA 配送費 2,450 組） | `fba._verified === '2026-04'` |
+| B-1（品類佣金） | `categories._verified === '2026-04'` |
+
+所以你更新某一組費率、把它的 `_verified` 改成新日期之後，
+**只有那一組的 parity 比對會自動跳過**，其他組的防護還在。
+跳過時會明確印出來，不會偽裝成通過：
 
 ```
-── A. FBA 配送費 parity（新引擎 vs 原版 v1.1）──
-   ⏭  跳過：rates.js 已更新到 2026.10（基準為 2026.04），
-      與 v1.1 寫死費率表的比對不再適用。這是預期行為，不是失敗。
+── B. 佣金 / 倉儲 / 退款管理費 ──
+   ⏭  跳過與 v1.1 的佣金 parity 比對（categories._verified = 2026-08-27）
 ```
+
+（這樣設計的原因：各組費率的更新步調不同。如果統一看 `meta.version`，
+改了佣金就會連 FBA 那 2,450 組的防護一起關掉，白白失去保護。）
 
 其餘所有測試（階梯佣金公式、倉儲費公式、退款管理費上限、燃油附加費、
 bug 迴歸、端到端試算）都是**從 `rates.js` 讀值再驗算**，任何費率版本都會跑。
