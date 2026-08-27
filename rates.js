@@ -17,6 +17,13 @@ window.AMZ_RATES = {
    * META — UI 右上角的「費率版本」徽章會讀這裡
    * -------------------------------------------------------------------------*/
   meta: {
+    // 資料結構版本。app.js 會檢查這個值，不符就自動帶新 cache-bust token
+    // 重新載入，避免瀏覽器拿到「舊 rates.js + 新 app.js」而整頁失效。
+    // ⚠️ 只有在改動資料「結構」時才要 +1（例如把 storage 拆成 standard/oversize、
+    //    把 fba 改成四張費率卡）。單純改數字不用動。
+    //    改了這裡就要同步改 app.js 最上面的 REQUIRED_RATES_SCHEMA。
+    schema: 2,
+
     version: '2026.08',           // 費率基準期（不是程式版本）
     lastUpdated: '2026-08-27',    // 最舊的一項為準（目前 SEND／貨代仍是 2026-04）
     nextReviewDue: '2026-10-15',  // 配送費旺季生效日；過期 UI 會轉紅色警示

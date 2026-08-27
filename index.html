@@ -7,7 +7,7 @@
 <meta name="description" content="專為台灣賣家設計的 Amazon 美國站 FBA 成本與利潤計算工具，含品類佣金查詢、FBA 費用自動估算、倉儲費計算、廣告成本分析、新賣家優惠模擬。">
 <meta name="color-scheme" content="light">
 <link rel="icon" href="data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 32 32'%3E%3Crect width='32' height='32' rx='6' fill='%23232f3e'/%3E%3Ctext x='16' y='23' font-size='19' font-family='sans-serif' font-weight='bold' text-anchor='middle' fill='%23ff9900'%3E%24%3C/text%3E%3C/svg%3E">
-<link rel="stylesheet" href="styles.css">
+<link rel="stylesheet" href="styles.css" id="mainStylesheet">
 </head>
 <body>
 
@@ -762,7 +762,33 @@
 
 <div class="toast" id="toast"></div>
 
-<script src="rates.js"></script>
-<script src="app.js"></script>
+<!--
+  資源載入器 —— 不要改回寫死的 <script src="rates.js">
+
+  GitHub Pages 對每個檔案送 Cache-Control: max-age=600，各檔案獨立過期。
+  更新 rates.js 之後，瀏覽器很可能拿到「舊 rates.js + 新 app.js」的組合，
+  app.js 會因為讀不到新結構而在 init() 中途拋錯，結果是整頁按鈕全部沒反應
+  （bind() 還沒執行就掛了），而且畫面看起來只是「怪」而不是「壞」。
+
+  解法：把網址上的 ?_v= token 一併帶到子資源的 URL 上。
+  app.js 偵測到 rates.js schema 不符時，會自動帶新 token 重新載入一次，
+  兩個檔案的 URL 都變了 → 一定會重新抓，不需要使用者手動清快取。
+-->
+<script>
+(function () {
+  var v = new URLSearchParams(location.search).get('_v');
+  var q = v ? '?_v=' + encodeURIComponent(v) : '';
+  if (q) {
+    var css = document.getElementById('mainStylesheet');
+    if (css) css.href = 'styles.css' + q;
+  }
+  ['rates.js', 'app.js'].forEach(function (f) {
+    var s = document.createElement('script');
+    s.src = f + q;
+    s.async = false;   // 動態插入時保證依序執行
+    document.head.appendChild(s);
+  });
+})();
+</script>
 </body>
 </html>

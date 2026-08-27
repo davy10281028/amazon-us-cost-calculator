@@ -913,10 +913,107 @@ if (typeof module !== 'undefined' && module.exports) module.exports = { Engine, 
 /* ===========================================================================
  * 3. UI
  * =========================================================================*/
+/**
+ * 這支 app.js 需要的 rates.js 資料結構版本。
+ * 必須與 rates.js 的 meta.schema 相同 —— 只有改動資料「結構」時才會變。
+ */
+const REQUIRED_RATES_SCHEMA = 2;
+
 if (typeof document !== 'undefined') (function () {
 
 const R = window.AMZ_RATES;
 const LS_KEY = 'amzCostCalc.v2';
+const HEAL_FLAG = 'amzCostCalc.cacheHealAttempt';
+
+/* -------------------------------------------------------------------------
+ * 載入失敗的處理
+ *
+ * 最常見的情況：更新 rates.js 之後，瀏覽器因為 max-age=600 拿到
+ * 「舊 rates.js + 新 app.js」的組合，app.js 讀不到新結構就在 init() 中途拋錯，
+ * bind() 還沒跑到 → 整頁按鈕全部沒反應，但畫面看起來只是「怪」不是「壞」，
+ * 使用者根本不知道要清快取。
+ *
+ * 所以：偵測到不相容就自動帶新 token 重新載入一次（兩個檔案 URL 都會變，
+ * 必定重新抓）；萬一重載後還是不行，就顯示一個看得見、講得清楚的橫幅。
+ * ---------------------------------------------------------------------- */
+
+function fatalBanner(titleZh, titleEn, detail) {
+  try { document.querySelectorAll('.container, .mode-bar, .action-bar').forEach(el => el.remove()); } catch (e) { /* ignore */ }
+  const box = document.createElement('div');
+  box.setAttribute('role', 'alert');
+  box.style.cssText = 'max-width:680px;margin:2rem auto;padding:1.25rem;border:2px solid #ef4444;' +
+    'border-radius:12px;background:#fef2f2;color:#1a1a2e;font-size:0.9rem;line-height:1.7;' +
+    "font-family:-apple-system,BlinkMacSystemFont,'Segoe UI','Noto Sans TC',sans-serif;";
+  const h = document.createElement('div');
+  h.style.cssText = 'font-weight:700;color:#991b1b;margin-bottom:0.5rem;font-size:1rem;';
+  h.textContent = '⚠️ ' + titleZh;
+  const p1 = document.createElement('div');
+  p1.textContent = titleEn;
+  p1.style.cssText = 'color:#6b7280;font-size:0.82rem;margin-bottom:0.75rem;';
+  const p2 = document.createElement('div');
+  p2.style.cssText = 'font-family:ui-monospace,Menlo,Consolas,monospace;font-size:0.76rem;' +
+    'background:#fff;border:1px solid #fecaca;border-radius:6px;padding:0.5rem;margin-bottom:0.85rem;' +
+    'white-space:pre-wrap;word-break:break-word;';
+  p2.textContent = detail;
+  const btn = document.createElement('button');
+  btn.type = 'button';
+  btn.textContent = '↻ 強制重新載入 / Force reload';
+  btn.style.cssText = 'padding:0.5rem 1rem;border:1px solid #991b1b;border-radius:8px;background:#fff;' +
+    'color:#991b1b;font-weight:600;cursor:pointer;font-size:0.85rem;font-family:inherit;';
+  btn.onclick = () => hardReload(true);
+  box.append(h, p1, p2, btn);
+  document.body.appendChild(box);
+}
+
+/**
+ * 帶一個全新的 ?_v= token 重新載入 —— 子資源 URL 也會變，必定繞過快取。
+ *
+ * @param {boolean} resetGuard 是否清掉「已自動重試過」的旗標。
+ *   只有使用者手動按「強制重新載入」時才給 true（讓他能再試一次）。
+ *   ⚠️ 自動路徑一定要傳 false，否則旗標會被自己清掉 → 無限重載。
+ */
+function hardReload(resetGuard) {
+  if (resetGuard) {
+    try { sessionStorage.removeItem(HEAL_FLAG); } catch (e) { /* ignore */ }
+  }
+  const token = String(Date.now());
+  location.replace(location.pathname + '?_v=' + token + location.hash);
+}
+
+/** 自動自我修復：只嘗試一次，避免無限重載 */
+function trySelfHeal(reason) {
+  let already = false;
+  try { already = sessionStorage.getItem(HEAL_FLAG) === '1'; } catch (e) {
+    // 無痕模式讀不到 sessionStorage：不能保證只重試一次，寧可直接顯示橫幅
+    already = true;
+  }
+  if (already) {
+    fatalBanner(
+      '工具載入失敗，且自動重試後仍未成功',
+      'The calculator failed to load, and an automatic retry did not help.',
+      reason + '\n\n' +
+      '請試著按 Ctrl+Shift+R（Mac 為 Cmd+Shift+R）強制重新整理。\n' +
+      '若仍無效，可能是 rates.js 與 app.js 的版本不相容 —— ' +
+      '請確認兩個檔案是同一次 commit 部署上去的。'
+    );
+    return;
+  }
+  try { sessionStorage.setItem(HEAL_FLAG, '1'); } catch (e) { /* 上面已擋掉這種情況 */ }
+  hardReload(false);
+}
+
+// rates.js 沒載到，或結構版本不符 → 自我修復
+if (!R || !R.meta) {
+  trySelfHeal('rates.js 沒有載入成功（window.AMZ_RATES 是 undefined）。');
+  return;
+}
+if (R.meta.schema !== REQUIRED_RATES_SCHEMA) {
+  trySelfHeal('資料結構版本不符：rates.js 提供 schema=' + R.meta.schema +
+              '，但 app.js 需要 schema=' + REQUIRED_RATES_SCHEMA +
+              '（rates.js 費率基準 ' + R.meta.version + '）。' +
+              '通常是瀏覽器快取了其中一個舊檔案。');
+  return;
+}
 
 /* ---- 狀態 ----------------------------------------------------------- */
 const State = {
@@ -2028,7 +2125,24 @@ function init() {
   recalc();
 }
 
-if (document.readyState === 'loading') document.addEventListener('DOMContentLoaded', init);
-else init();
+/**
+ * init() 一定要包 try/catch。
+ * 原本只要 applyI18n() 拋錯，後面的 bind() 就不會執行 —— 結果是整頁按鈕
+ * 全部沒反應，但畫面看起來只是「怪」，使用者不會知道發生了什麼事。
+ * 寧可顯示一個清楚的錯誤橫幅，也不要靜默失效。
+ */
+function safeInit() {
+  try {
+    init();
+    // 成功了就把自我修復的旗標清掉，下次真的壞掉時才會再重試一次
+    try { sessionStorage.removeItem(HEAL_FLAG); } catch (e) { /* ignore */ }
+  } catch (err) {
+    console.error('[amz-calc] init failed:', err);
+    trySelfHeal('初始化時發生錯誤：\n' + (err && err.message ? err.message : String(err)));
+  }
+}
+
+if (document.readyState === 'loading') document.addEventListener('DOMContentLoaded', safeInit);
+else safeInit();
 
 })();

@@ -94,8 +94,26 @@ check('沒有沒人用的孤兒字典鍵',
 /* ---- 6. CSS 閘門 -------------------------------------------------------- */
 check('styles.css 定義了所有模式閘門 class',
   ['gate', 'g-fba', 'g-fbm', 'g-adv', 'g-twm', 'js-hidden'].filter(c => !css.includes('.' + c)));
-check('index.html 有載入 rates.js 與 app.js',
-  ['rates.js', 'app.js'].filter(f => !html.includes(`src="${f}"`)));
+// index.html 用一個 loader 動態插入 rates.js / app.js（為了把 ?_v= cache-bust
+// token 帶到子資源上），所以不是找 src="..." 字面，而是找 loader 的檔名清單。
+check('index.html 的 loader 有列出 rates.js 與 app.js',
+  ['rates.js', 'app.js'].filter(f => !html.includes(`'${f}'`)));
+check('index.html 的 loader 會傳遞 ?_v= cache-bust token',
+  html.includes("get('_v')") && html.includes("'?_v='") ? [] : ['loader 缺少 _v token 傳遞']);
+
+/* ---- 6b. rates.js 與 app.js 的 schema 契約 ------------------------------ */
+// 兩者不符時，瀏覽器若快取了其中一個舊檔案，整頁按鈕會失效。
+// 改動 rates.js 的「結構」時，兩邊都要 +1。
+{
+  const m = /REQUIRED_RATES_SCHEMA\s*=\s*(\d+)/.exec(appSrc);
+  const need = m ? Number(m[1]) : null;
+  const have = R.meta && R.meta.schema;
+  const bad = [];
+  if (need === null) bad.push('app.js 找不到 REQUIRED_RATES_SCHEMA');
+  else if (typeof have !== 'number') bad.push('rates.js 的 meta.schema 缺少或不是數字');
+  else if (need !== have) bad.push(`app.js 需要 schema=${need}，但 rates.js 提供 schema=${have}`);
+  check('rates.js 的 meta.schema 與 app.js 的 REQUIRED_RATES_SCHEMA 一致', bad);
+}
 
 /* ---- 7. rates.js 一致性 ------------------------------------------------- */
 const catKeys = Object.keys(R.categories).filter(k => !k.startsWith('_'));

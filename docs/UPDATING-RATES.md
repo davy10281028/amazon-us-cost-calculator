@@ -257,15 +257,49 @@ grocery: { pct: 15, tiered: false, label: { zh: 'Grocery 食品雜貨', en: 'Gro
 
 但**還要去 `app.js` 的 `INSIGHTS` 加對應的市場洞察**，否則 `node test/lint.js` 會報錯。
 
-### 3.4 部署
+### 3.4 有改「結構」的話，要 +1 schema
+
+只改數字**不用**動 schema。但如果你改的是資料**結構**
+（例如把 `storage` 拆成 `standard`/`oversize`、把 `fba` 改成四張費率卡），
+就要把兩個地方一起 +1：
+
+```js
+// rates.js
+meta: { schema: 3, ... }
+
+// app.js（最上面）
+const REQUIRED_RATES_SCHEMA = 3;
+```
+
+`node test/lint.js` 會擋住只改一邊的情況。
+
+**為什麼需要這個機制**：GitHub Pages 對每個檔案送 `Cache-Control: max-age=600`，
+各檔案獨立過期。你更新 `rates.js` 後，使用者的瀏覽器很可能拿到
+「舊 rates.js + 新 app.js」的組合。以前這會讓 `init()` 在中途拋錯、
+`bind()` 根本沒執行 → **整頁按鈕全部沒反應**，而畫面看起來只是「怪」不是「壞」，
+使用者完全不知道要清快取（2026-08-27 真的發生過）。
+
+現在的三層防護：
+
+1. `index.html` 用 loader 載入子資源，會把網址上的 `?_v=` token 一併帶上
+2. `app.js` 檢查 `meta.schema`，不符就自動帶新 token 重載一次（`sessionStorage` 擋迴圈）
+3. `init()` 包在 try/catch 裡，任何錯誤都顯示看得見的雙語橫幅 + 強制重載按鈕
+
+所以即使 schema 沒 +1，使用者最多看到一次自動重載；但 +1 會讓它更快更確定。
+
+### 3.5 部署
 
 ```bash
-git add rates.js docs/UPDATING-RATES.md test/
+node test/engine.test.js && node test/lint.js   # 兩個都要綠
+git add -A
 git commit -m "rates: 更新至 2026-10 官方費率（含旺季倉儲費）"
 git push
 ```
 
 GitHub Pages 大約 1 分鐘後生效。
+
+部署後自己開一次確認，**並且用無痕視窗開一次**（模擬新訪客的快取狀態）。
+若看到紅色錯誤橫幅，按上面的「強制重新載入」即可。
 
 ---
 
