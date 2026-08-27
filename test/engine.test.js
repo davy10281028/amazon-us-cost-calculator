@@ -49,7 +49,6 @@ function near(name, a, b, tol = 0.005) {
  * 只要某組還是 2026-04，就對它跑「與 v1.1 逐項相符」的防護；一旦更新就自動跳過。
  */
 const BASELINE = '2026-04';
-const fbaIsBaseline = R.fba._verified === BASELINE;
 const catIsBaseline = R.categories._verified === BASELINE;
 
 const ORIG_CATEGORIES = {
@@ -66,71 +65,6 @@ const ORIG_CATEGORIES = {
   books: { pct: 15, tiered: false, extraPerItem: 1.80 }
 };
 
-function origCalcFbaFee(weightOz, dimLin, dimWin, dimHin, sellPrice) {
-  const maxSide = Math.max(dimLin, dimWin, dimHin);
-  const sides = [dimLin, dimWin, dimHin].sort((a, b) => a - b);
-  const minSide = sides[0], medSide = sides[1];
-  const girth = 2 * (medSide + minSide);
-  const lengthGirth = maxSide + girth;
-  const weightLb = weightOz / 16;
-  const effW = Math.max(dimWin, 2), effH = Math.max(dimHin, 2);
-  const dimWeight = (dimLin * effW * effH) / 139;
-  const isSmallStd = maxSide <= 15 && medSide <= 12 && minSide <= 0.75 && weightOz <= 16;
-  const fitsStandard = maxSide <= 18 && medSide <= 14 && minSide <= 8;
-  let tier = '', baseFee = 0;
-  const priceRange = (sellPrice || 25) < 10 ? 'low' : (sellPrice || 25) > 50 ? 'high' : 'mid';
-
-  if (isSmallStd) {
-    tier = 'Small Standard';
-    const w = weightOz;
-    const rates_mid = [[2, 3.06], [4, 3.15], [6, 3.24], [8, 3.33], [10, 3.43], [12, 3.53], [14, 3.60], [16, 3.65]];
-    const rates_low = [[2, 2.29], [4, 2.38], [6, 2.47], [8, 2.56], [10, 2.66], [12, 2.76], [14, 2.83], [16, 2.88]];
-    const rates_high = [[2, 3.32], [4, 3.42], [6, 3.45], [8, 3.54], [10, 3.68], [12, 3.78], [14, 3.91], [16, 3.96]];
-    const rates = priceRange === 'low' ? rates_low : priceRange === 'high' ? rates_high : rates_mid;
-    for (const [maxW, fee] of rates) { if (w <= maxW) { baseFee = fee; break; } }
-  } else if (fitsStandard && Math.max(weightLb, dimWeight) <= 20) {
-    tier = 'Large Standard';
-    const sw = Math.max(weightLb, dimWeight);
-    const wOzEff = sw * 16;
-    if (wOzEff <= 4) baseFee = priceRange === 'low' ? 2.91 : priceRange === 'high' ? 3.73 : 3.68;
-    else if (wOzEff <= 8) baseFee = priceRange === 'low' ? 3.13 : priceRange === 'high' ? 3.95 : 3.90;
-    else if (wOzEff <= 12) baseFee = priceRange === 'low' ? 3.38 : priceRange === 'high' ? 4.20 : 4.15;
-    else if (wOzEff <= 16) baseFee = priceRange === 'low' ? 3.78 : priceRange === 'high' ? 4.60 : 4.55;
-    else if (sw <= 1.25) baseFee = priceRange === 'low' ? 4.22 : priceRange === 'high' ? 5.04 : 4.99;
-    else if (sw <= 1.5) baseFee = priceRange === 'low' ? 4.60 : priceRange === 'high' ? 5.42 : 5.37;
-    else if (sw <= 1.75) baseFee = priceRange === 'low' ? 4.75 : priceRange === 'high' ? 5.57 : 5.52;
-    else if (sw <= 2) baseFee = priceRange === 'low' ? 5.00 : priceRange === 'high' ? 5.82 : 5.77;
-    else if (sw <= 2.25) baseFee = priceRange === 'low' ? 5.10 : priceRange === 'high' ? 5.92 : 5.87;
-    else if (sw <= 2.5) baseFee = priceRange === 'low' ? 5.28 : priceRange === 'high' ? 6.10 : 6.05;
-    else if (sw <= 2.75) baseFee = priceRange === 'low' ? 5.44 : priceRange === 'high' ? 6.26 : 6.21;
-    else if (sw <= 3) baseFee = priceRange === 'low' ? 5.85 : priceRange === 'high' ? 6.67 : 6.62;
-    else {
-      const base = priceRange === 'low' ? 6.15 : priceRange === 'high' ? 6.97 : 6.92;
-      const extraLb = sw - 3;
-      const intervals = Math.ceil(extraLb * 4);
-      baseFee = base + intervals * 0.08;
-    }
-  } else if (lengthGirth <= 130 && maxSide <= 59 && Math.max(weightLb, dimWeight) <= 50) {
-    const sw = Math.max(weightLb, dimWeight);
-    if (maxSide <= 26 && medSide <= 18 && minSide <= 14) {
-      tier = 'Small Bulky';
-      baseFee = (priceRange === 'high' ? 7.55 : 9.61) + Math.max(0, sw - 1) * 0.38;
-    } else {
-      tier = 'Large Bulky';
-      baseFee = (priceRange === 'high' ? 9.35 : 9.61) + Math.max(0, sw - 1) * 0.38;
-    }
-  } else {
-    const sw = Math.max(weightLb, dimWeight);
-    tier = 'Extra Large';
-    if (sw <= 50) baseFee = 26.33 + Math.max(0, sw - 1) * 0.38;
-    else if (sw <= 70) baseFee = 40.12 + Math.max(0, sw - 51) * 0.75;
-    else if (sw <= 150) baseFee = 54.81 + Math.max(0, sw - 71) * 0.75;
-    else baseFee = 194.95 + Math.max(0, weightLb - 151) * 0.19;
-  }
-  const total = baseFee + baseFee * 0.035;
-  return { fee: Math.round(total * 100) / 100, tier };
-}
-
 function origReferral(price, catKey) {
   const cat = ORIG_CATEGORIES[catKey];
   if (!cat) return price * 0.15;
@@ -143,54 +77,89 @@ function origReferral(price, catKey) {
   return price * (cat.pct / 100);
 }
 
-const ORIG_TIER_MAP = {
-  'Small Standard': 'smallStandard', 'Large Standard': 'largeStandard',
-  'Small Bulky': 'smallBulky', 'Large Bulky': 'largeBulky', 'Extra Large': 'extraLarge'
-};
-
 /* =============================================================================
- * A. PARITY — FBA 配送費
+ * A. FBA 配送費 —— 以官方「Product size examples」為黃金基準
+ *
+ *   來源：Seller Central GABBX6GZPA8MSZGW，2026-08-27 經 Lens 讀取。
+ *   官方在該頁列出 6 個含完整尺寸／重量／ASP 的商品範例，並給出非旺季與
+ *   旺季的應收費用（不含燃油附加費）。這 12 個數字是最強的驗證：
+ *   同時檢查了 size tier 判定、體積重、售價分檔、服裝/非服裝費率卡、
+ *   旺季費率卡、Bulky/XL 的整磅取整級距、以及 XL 150+ lb 的實重例外。
+ *
+ *   ⚠️ 原本這裡是「與原版 v1.1 逐項 parity」的 2,450 組比對。
+ *      2026-08-27 對照官方表後確認 v1.1 的費率表本身抄錯了
+ *      （把官方 2025 年欄位當成 low/mid，再把 2026 年的 $10-$50 當成 high），
+ *      所以跟它相符反而是錯的。已改為對照官方範例。
  * ===========================================================================*/
-console.log('\n── A. FBA 配送費 parity（新引擎 vs 原版 v1.1）──');
+console.log('\n── A. FBA 配送費（對照官方 Product size examples）──');
 
-const weightsOz = [0.5, 1.9, 2, 2.1, 5.5, 8, 12, 15.9, 16, 16.1, 20, 24, 32, 40, 48,
-                   60, 80, 100, 160, 320, 480, 800, 1200, 2400, 2560];
-const dimSets = [
-  [10, 8, 0.5], [14, 11, 0.7], [15, 12, 0.75], [15.1, 12, 0.75],
-  [12, 9, 3], [17, 13, 7], [18, 14, 8], [18.1, 14, 8],
-  [24, 17, 12], [26, 18, 14], [30, 20, 16], [40, 25, 20], [58, 32, 32], [70, 40, 30]
+const OFFICIAL_EXAMPLES = [
+  { name: 'Mobile device case', tier: 'smallStandard', apparel: false,
+    dims: { l: 13.8, w: 9,    h: 0.7 }, unitLb: 2.88 / 16, price: 5,  band: 'low',
+    nonPeak: 2.49,  peak: 2.68 },
+  { name: 'T-shirt (apparel)',  tier: 'largeStandard', apparel: true,
+    dims: { l: 13,   w: 9,    h: 0.85 }, unitLb: 5.40 / 16, price: 25, band: 'mid',
+    nonPeak: 6.14,  peak: 6.53 },
+  { name: 'Iron (3+ lb)',       tier: 'largeStandard', apparel: false,
+    dims: { l: 12.6, w: 6.6,  h: 5.5 }, unitLb: 3.35,      price: 25, band: 'mid',
+    nonPeak: 7.13,  peak: 7.67 },
+  { name: 'Baby cot',           tier: 'smallBulky',    apparel: false,
+    dims: { l: 24,   w: 7.5,  h: 6 },   unitLb: 7.90,      price: 60, band: 'high',
+    nonPeak: 10.21, peak: 11.25 },
+  { name: 'Monitor',            tier: 'extraLarge',    apparel: false,
+    dims: { l: 54,   w: 35,   h: 3.5 }, unitLb: 41,        price: 25, band: 'mid',
+    nonPeak: 44.19, peak: 46.92 },
+  { name: 'TV',                 tier: 'extraLarge',    apparel: false,
+    dims: { l: 65,   w: 20,   h: 7 },   unitLb: 62,        price: 60, band: 'high',
+    nonPeak: 48.57, peak: 51.38 }
 ];
-const prices = [5, 9.99, 10, 25.99, 50, 50.01, 120];
 
-if (!fbaIsBaseline) {
-  console.log(`   ⏭  跳過：fba._verified 已更新為 ${R.fba._verified}（基準 ${BASELINE}），`);
-  console.log('      與 v1.1 寫死費率表的比對不再適用。這是預期行為，不是失敗。');
-} else {
-  let feeChecks = 0, feeMismatch = 0, tierMismatch = 0;
-  for (const oz of weightsOz) {
-    for (const [l, w, h] of dimSets) {
-      for (const p of prices) {
-        const o = origCalcFbaFee(oz, l, w, h, p);
-        const n = Engine.fbaFee(oz, { l, w, h }, p, R);
-        feeChecks++;
-        if (Math.abs(o.fee - n.fee) > 0.005) {
-          feeMismatch++;
-          if (feeMismatch <= 5) {
-            failures.push(`FBA fee 不一致 oz=${oz} dims=${l}x${w}x${h} p=${p}: orig ${o.fee} vs new ${n.fee}`);
-          }
-        }
-        if (ORIG_TIER_MAP[o.tier] !== n.tier) {
-          tierMismatch++;
-          if (tierMismatch <= 5) {
-            failures.push(`size tier 不一致 oz=${oz} dims=${l}x${w}x${h}: orig ${o.tier} vs new ${n.tier}`);
-          }
-        }
-      }
-    }
+for (const ex of OFFICIAL_EXAMPLES) {
+  for (const [season, expected] of [['offpeak', ex.nonPeak], ['peak', ex.peak]]) {
+    const r = Engine.fbaFee(ex.unitLb * 16, ex.dims, ex.price, R, { season, apparel: ex.apparel });
+    near(`A ${ex.name} / ${season} 基本費 = $${expected}`, r.baseFee, expected, 0.005);
+    ok(`A ${ex.name} 判為 ${ex.tier}`, r.tier === ex.tier, r.tier);
+    ok(`A ${ex.name} 售價檔 = ${ex.band}`, r.priceBand === ex.band, r.priceBand);
   }
-  ok(`FBA 配送費 ${feeChecks} 組全部相符`, feeMismatch === 0, `${feeMismatch} 組不符`);
-  ok(`Size tier ${feeChecks} 組全部相符`, tierMismatch === 0, `${tierMismatch} 組不符`);
-  console.log(`   共比對 ${feeChecks} 組組合，費用不符 ${feeMismatch} 組、tier 不符 ${tierMismatch} 組`);
+}
+// 旺季一定比非旺季貴
+for (const ex of OFFICIAL_EXAMPLES) {
+  ok(`A ${ex.name} 旺季費用高於非旺季`, ex.peak > ex.nonPeak);
+}
+// 燃油附加費疊加在基本費之上
+{
+  const ex = OFFICIAL_EXAMPLES[0];
+  const r = Engine.fbaFee(ex.unitLb * 16, ex.dims, ex.price, R, { season: 'offpeak' });
+  near(`A 燃油附加費：$${ex.nonPeak} × (1 + ${R.fuelSurcharge.pct}%)`,
+    r.fee, Math.round(ex.nonPeak * (1 + R.fuelSurcharge.pct / 100) * 100) / 100, 0.011);
+}
+// 整磅取整級距（Bulky / XL）：官方範例反推的級距數
+{
+  ok('A 級距數 = ceil(計費重) - freeLb：7.90 lb / free 1 → 7',
+    Engine.lbIntervals(7.90, 1) === 7, String(Engine.lbIntervals(7.90, 1)));
+  ok('A 47.59 lb / free 1 → 47', Engine.lbIntervals(47.59, 1) === 47);
+  ok('A 65.47 lb / free 51 → 15', Engine.lbIntervals(65.47, 51) === 15);
+  ok('A 剛好整數不多算：8.0 lb / free 1 → 7', Engine.lbIntervals(8.0, 1) === 7);
+  ok('A 低於免計重量不會變負', Engine.lbIntervals(0.5, 1) === 0);
+}
+// 服裝與非服裝是不同費率卡
+{
+  const d = { l: 13, w: 9, h: 0.85 }, oz = 5.40;
+  const na = Engine.fbaFee(oz, d, 25, R, { season: 'offpeak', apparel: false }).baseFee;
+  const ap = Engine.fbaFee(oz, d, 25, R, { season: 'offpeak', apparel: true }).baseFee;
+  ok(`A 服裝費率 ($${ap}) 高於非服裝 ($${na})`, ap > na);
+  ok('A 服裝的 3+lb 級距是每半磅 $0.16', R.fba.rates.apparel.nonPeak.largeStandard.over.intervalOz === 8);
+  ok('A 非服裝的 3+lb 級距是每 4 oz $0.08', R.fba.rates.nonApparel.nonPeak.largeStandard.over.intervalOz === 4);
+}
+// 售價三檔單調遞增（官方表：低價 < $10-50 <= >$50）
+for (const grp of ['nonApparel', 'apparel']) {
+  for (const ph of ['nonPeak', 'peak']) {
+    const c = R.fba.rates[grp][ph];
+    const all = c.smallStandard.bands.concat(c.largeStandard.bands);
+    ok(`A ${grp}/${ph} 每一級距 low <= mid <= high`,
+      all.every(b => b.low <= b.mid && b.mid <= b.high),
+      JSON.stringify(all.find(b => !(b.low <= b.mid && b.mid <= b.high))));
+  }
 }
 
 /* =============================================================================
@@ -199,6 +168,12 @@ if (!fbaIsBaseline) {
  *    B-2 之後是「公式」測試，費率一律從 rates.js 讀，改費率也不會壞
  * ===========================================================================*/
 console.log('\n── B. 佣金 / 倉儲 / 退款管理費 ──');
+
+// 倉儲費測試用的尺寸組合（英吋）
+const dimSets = [
+  [10, 8, 0.5], [14, 11, 0.7], [15, 12, 0.75], [12, 9, 3],
+  [17, 13, 7], [18, 14, 8], [24, 17, 12], [30, 20, 16], [58, 32, 32]
+];
 
 if (catIsBaseline) {
   // v1.1 沒有實作「最低銷售佣金 $0.30」，所以只在下限沒咬到的價位比對百分比邏輯。
@@ -477,9 +452,23 @@ ok('D 每個 SEND 服務都有級距與 zh/en 名稱',
 ok('D 每個貨代費率都有 zh/en 名稱',
   ['tw', 'cn'].every(o => ['sea', 'air', 'express'].every(m =>
     R.freight[o][m].label?.zh && R.freight[o][m].label?.en)));
-ok('D FBA 費率表每個級距都有 low/mid/high 三檔',
-  R.fba.smallStandard.bands.every(b => 'low' in b && 'mid' in b && 'high' in b) &&
-  R.fba.largeStandard.bands.every(b => 'low' in b && 'mid' in b && 'high' in b));
+ok('D 四張費率卡都存在（服裝/非服裝 × 旺季/非旺季）',
+  ['nonApparel', 'apparel'].every(g => ['nonPeak', 'peak'].every(ph => R.fba.rates[g] && R.fba.rates[g][ph])));
+ok('D 每張費率卡的每個級距都有 low/mid/high 三檔',
+  ['nonApparel', 'apparel'].every(g => ['nonPeak', 'peak'].every(ph => {
+    const c = R.fba.rates[g][ph];
+    return c.smallStandard.bands.concat(c.largeStandard.bands)
+      .every(b => typeof b.low === 'number' && typeof b.mid === 'number' && typeof b.high === 'number');
+  })));
+ok('D 每張費率卡都有 8 個 Small Standard 與 12 個 Large Standard 級距',
+  ['nonApparel', 'apparel'].every(g => ['nonPeak', 'peak'].every(ph => {
+    const c = R.fba.rates[g][ph];
+    return c.smallStandard.bands.length === 8 && c.largeStandard.bands.length === 12
+      && c.extraLarge.bands.length === 4;
+  })));
+ok('D 配送費旺季視窗有明確起訊日期', !!(R.fba.peakWindow.from && R.fba.peakWindow.to));
+ok('D XL 最重級距用實際重量計費（官方例外）',
+  R.fba.rates.nonApparel.nonPeak.extraLarge.bands[3].basis === 'unitWeight');
 ok('D meta 有版本 / 最後更新 / 下次複查日期',
   !!(R.meta.version && R.meta.lastUpdated && R.meta.nextReviewDue));
 
@@ -491,7 +480,7 @@ console.log('\n── E. 端到端合理性 ──');
 // 預設情境：$25.99 售價、$2.50 成本、280g、25x15x5cm、海運 $1/kg
 const dOz = 280 * 0.03527396;
 const dIn = { l: 25 * 0.393701, w: 15 * 0.393701, h: 5 * 0.393701 };
-const dFba = Engine.fbaFee(dOz, dIn, 25.99, R);
+const dFba = Engine.fbaFee(dOz, dIn, 25.99, R, { season: 'offpeak', apparel: false });
 ok('E 預設商品判為 Large Standard', dFba.tier === 'largeStandard', dFba.tier);
 
 const basic = Engine.computeAll({

@@ -21,11 +21,11 @@ node test/lint.js
 ## 1. 逐項對照清單
 
 下表左邊是 `rates.js` 裡的路徑，右邊是要去對照的官方頁面。
-**打 🔒 的需要登入 Seller Central**，沒帳號的話用 Amazon 全球開店中文頁交叉比對。
+**打 🔒 的需要登入 Seller Central** —— 讀法見 §1b（Lens + Midway，有腳本可用）。
 
 | # | `rates.js` 路徑 | 對照來源 | 重點看什麼 |
 |---|---|---|---|
-| 1 | `fba.smallStandard.bands`<br>`fba.largeStandard.bands`<br>`fba.largeStandard.over`<br>`fba.bulky`<br>`fba.extraLarge.bands` | 🔒 [Seller Central GABBX6GZPA8MSZGW](https://sellercentral.amazon.com/help/hub/reference/external/GABBX6GZPA8MSZGW) | **最容易變、也最影響結果的一項。**<br>三個售價檔（`low` / `mid` / `high`）的每個重量級距都要對。<br>注意 Amazon 有時只調其中一檔。 |
+| 1 | `fba.rates.{nonApparel,apparel}.{nonPeak,peak}` | 🔒 [Seller Central GABBX6GZPA8MSZGW](https://sellercentral.amazon.dev/help/hub/reference/external/GABBX6GZPA8MSZGW)（見 §1b） | **最容易變、也最影響結果的一項。**<br>四張費率卡（服裝/非服裝 × 旺季/非旺季）各 3 個售價檔 × 每個重量級距。<br>⚠️ 官方表會把**多個年度並排**，務必確認抓的是當期那幾欄 —— 原版 v1.1 就是在這裡抄錯（見 §2b）。<br>用 `scripts/read-seller-central.py` 匯出後以腳本轉換，不要人工抄。 |
 | 2 | `fuelSurcharge.pct` | 同上 | 目前 3.5%。Amazon 曾多次調整燃油附加費，**每次更新都要確認這個數字還在不在、有沒有變**。 |
 | 3 | `sizeTiers.*` | 同上（Product size tiers 段） | 尺寸／重量門檻。變動頻率低，但 2024 年 Amazon 改過一次，不要假設不變。 |
 | 4 | `storage.standard.*`<br>`storage.oversize.*` | 🔒 [Seller Central G200612770](https://sellercentral.amazon.com/help/hub/reference/external/G200612770) | 淡季 / 旺季每立方英尺費率，**標準尺寸與大件是兩組不同數字**。<br>**旺季（10-12 月）通常在 9 月公告**，所以 Q3 那次更新特別重要。<br>⚠️ `storage._conflict` 記錄了 standard.offpeak 的未解衝突，優先處理。 |
@@ -45,47 +45,66 @@ node test/lint.js
 
 ---
 
+## 1b. 🔑 怎麼讀那些「需要登入」的 Seller Central 頁面
+
+**這是整份手冊最重要的一節。** 打 🔒 的頁面用 `curl` 抓會回 HTTP 200
+但內容是 JS 外殼（0 筆費率），一定要用瀏覽器渲染 + 認證。
+
+Amazon 內部的 **Lens** 把 Seller Central 代理到 `sellercentral.amazon.dev`
+（注意是 **.dev**，不是 .com）。`.dev` 走 **Midway** 認證，所以只要 Midway
+是新的，就能用本機 Chrome + Midway cookie 直接讀到官方表格。
+
+### 步驟
+
+```bash
+# 1. 確保 Midway 是新的（過期就重跑）
+mwinit -f
+ls -l ~/.midway/cookie          # 看時間戳
+
+# 2. 用 Playwright 帶 Midway cookie 渲染 .dev 網址
+python scripts/read-seller-central.py GABBX6GZPA8MSZGW
+```
+
+URL 形式（把 .com 換成 .dev 就好）：
+
+```
+https://sellercentral.amazon.dev/help/hub/reference/external/<NODE_ID>
+```
+
+### 重點細節
+
+- **必須用 `.dev`**，`.com` 那個網域 Midway cookie 沒用。
+- Playwright 要用 `channel="chrome"`（本機 Chrome），並把
+  `~/.midway/cookie`（Netscape 格式）解析後用 `context.add_cookies()` 注入。
+- 頁面是 SPA，`goto` 之後要 **等 6-7 秒 + 往下滾動**，表格才會渲染完。
+- 有些 node id 會被導到 `/sign-in`（例如倉儲費 G200612770 會轉到
+  G3EDYEF6KUCFQTNM），那就是這條路走不通，得改用你自己登入的 Chrome
+  手動開、或請有權限的人代查。
+- 用 `ReadInternalWebsites` MCP 工具讀同樣的網址會回
+  「Could not extract meaningful content」—— 它做的是純文字擷取，
+  抓不到 JS 渲染後的表格。**必須用瀏覽器渲染。**
+
+### 抓到之後
+
+**不要人工抄數字。** 把 `<table>` 的 rows 匯出成 JSON，再用腳本生成
+`rates.js` 的區塊。2026-08 這次就是這樣做的 —— 因為原版 v1.1 的錯誤
+正是人工轉抄時看錯欄位造成的（詳見第 2b 節）。
+
+驗證方式：官方頁最下方通常有 **「Product size examples」**，
+給了含完整尺寸／重量／ASP 的商品範例和應收費用。
+把那些範例寫進 `test/engine.test.js` 當黃金測試，比對到分為止。
+
+---
+
 ## 2. 已知待複查項目
 
 這些是從原版 v1.1 沿用下來、看起來可疑但沒有官方頁面可即時確認的數字。
 **下次更新請優先處理，確認後把這一節對應的項目刪掉。**
 
-> **需要什麼才能收掉這一節：一組能登入 Seller Central 的憑證。**
-> 下面每一項都只在 🔒 頁面上有權威答案。`sellercentral.amazon.com/help/hub/reference/external/...`
-> 這些 URL 用 curl 抓會回 200 但內容是 JS 殼（實際 0 筆費率資料）；
-> `gs.amazon.com.tw/pricing` 雖然公開，但**它的 FBA 費率區塊是 2023/24 年份**
-> （頁面自己寫「將於 2024 年 1 月 15 日恢復至非旺季費率」），不能拿來更新 FBA 表。
-
-### 🔴 最高優先：`fba.*` 整張表的結構存疑
-
-`rates.js` 目前的 FBA 配送費結構是「售價三檔（<$10 / $10-$50 / >$50）+ 3.5% 燃油附加費」。
-但官方公開頁列的結構是**「非旺季／旺季」兩檔 + 低價 FBA 費率（比標準低 $0.77）**，
-而且整頁完全沒有提到燃油附加費。兩者不是同一套東西。
-
-再加上下面那個「high 檔比 mid 檔便宜」的內部矛盾，合理懷疑原版 v1.1 的
-這張表是憑印象填的或抄錯來源。**在登入 Seller Central 確認之前不要改數字，
-但也不要假設它是對的。**
-
-需要確認三件事：
-1. 現行結構到底是「售價三檔」還是「非旺季/旺季 + 低價 FBA」？
-2. 3.5% 燃油附加費是否真的存在、是否仍生效？
-3. 若結構不同，`Engine.fbaFee()` 的分檔邏輯也要一起改（不只是換數字）。
-
-### 🔴 `fba.bulky.small` 的 high band 低於 mid band
-
-```js
-small: { base: { low: 9.61, mid: 9.61, high: 7.55 }, freeLb: 1, perLbUsd: 0.38 }
-//                                     ^^^^^^^^^^^ 售價 >$50 反而比 $10-$50 便宜？
-```
-
-Small Bulky 在「售價 > $50」這一檔是 `$7.55`，比「$10-$50」的 `$9.61` **便宜 $2.06**。
-其他所有 tier 都是售價越高、配送費越高，只有這裡反過來。高度懷疑是原版抄表時抄錯行。
-→ 對照官方 Small Bulky 費率表的三個售價檔確認。
-
-### 🟡 `fba.bulky` 的 low band 沒有獨立數字
-
-原版程式碼寫 `priceRange === 'high' ? 7.55 : 9.61`，意思是 `low` 和 `mid` 共用 `9.61`。
-官方表通常三檔都有獨立數字，這裡可能漏了 `low` 檔。
+> 讀 🔒 頁面的方法見上面第 1b 節（Lens + Midway）。
+> 注意 `gs.amazon.com.tw/pricing` 雖然公開，但**它的 FBA 費率區塊是 2023/24 年份**
+> （頁面自己寫「將於 2024 年 1 月 15 日恢復至非旺季費率」），
+> 品類佣金那張「北美費用表」是現行的，但 FBA 費率不能用它。
 
 ### 🟡 `send.services['send-sea'].bands` 的每公斤近似值
 
@@ -105,25 +124,72 @@ Small Bulky 在「售價 > $50」這一檔是 `$7.55`，比「$10-$50」的 `$9.
 Amazon 實際規則是**實重 1 lb 以下的商品不套用體積重**，這裡沒有實作該例外。
 影響範圍：輕但體積大的商品（例如枕頭）可能被高估。
 
+### 🟡 官方頁上提到、但本工具尚未建模的費用
+
+這些都寫在 GABBX6GZPA8MSZGW 上，2026-08-27 讀到但沒實作。
+不影響現有計算的正確性，但會讓估算偏低：
+
+| 費用 | 內容 | 影響誰 |
+|---|---|---|
+| **Overmax handling fee** | 2026-01-15 起，Extra-Large（≤150 lb）最長邊超過 96 吋、或長+圍超過 130 吋要加收 | 超大件賣家 |
+| **Low-inventory-level fee** | 標準尺寸與 Bulky 商品，庫存低於 28 天供給量時加收 | 庫存週轉太快／補貨不及的賣家 |
+| **SIPP（Ships in Product Packaging）** | 通過認證的標準尺寸商品**降低**配送費；未認證的 Small/Bulky 商品**加收** | 想省配送費的人（是機會不是風險） |
+| **危險品費率** | 官方另有一張危險品費率表（本工具用非服裝表） | 電池、化學品類賣家 |
+
+要加的話，四張費率卡的結構已經在 `fba.rates` 裡了，照樣擴充即可。
+
 ---
 
 ## 2b. 2026-08-27 已完成的核對
 
-以官方公開頁 [gs.amazon.com.tw/pricing](https://gs.amazon.com.tw/pricing)
-的「北美費用表」逐列核對，確認並修正了：
+### FBA 配送費：整張表重建（影響最大）
+
+經 Lens 讀取官方 `GABBX6GZPA8MSZGW` 後發現**原版 v1.1 的費率表抄錯欄位**：
+
+官方表把「2025-01-15 ~ 2025-10-14」和「2026-01-15 ~ 2026-10-14」兩個期間
+並排放在同一張表（各佔三個售價欄）。原版的取法是：
+
+| rates.js 欄位 | 原版實際抄到的 | 應該是 |
+|---|---|---|
+| `low` (<$10) | 2025 年的 `<$10` | 2026 年的 `<$10` |
+| `mid` ($10-$50) | 2025 年的 `$10-$50` | 2026 年的 `$10-$50` |
+| `high` (>$50) | **2026 年的 `$10-$50`** | 2026 年的 `>$50` |
+
+所以最常見的 $10-$50 售價區間一直在用 2025 年舊費率。
+這也解釋了先前記錄的「Small Bulky 的 high 檔比 mid 檔便宜 $2.06」矛盾 ——
+`high` 來自 2026 表（Small Bulky 該年降價到 $7.55），`mid` 來自 2025 表（$9.61）。
+不是官方費率不合邏輯，是兩個年份混在一起。
+
+一併修正／新增：
+
+| 項目 | 內容 |
+|---|---|
+| **四張費率卡** | `fba.rates.{nonApparel,apparel}.{nonPeak,peak}`。原版只有一張（非服裝非旺季） |
+| **旺季配送費** | 官方明文 **2026-10-15 ~ 2027-01-14**，原版完全沒有。與倉儲費旺季（10-12 月）不同 |
+| **服裝費率卡** | `clothing` 品類加 `apparel: true` 後自動套用。服裝的 3+lb 級距是每半磅 $0.16（非服裝是每 4 oz $0.08） |
+| **整磅取整級距** | Bulky / XL 的加價是 `ceil(計費重) - freeLb` 個級距，原版用連續乘。官方 Baby cot 範例 7.90 lb → 7 級距（不是 6.9） |
+| **XL 各級距的售價分檔** | 原版 `extraLarge` 的 base 是單一數字，官方其實也分三檔 |
+| **燃油附加費** | 確認官方原文「Starting April 17, 2026, a 3.5% fuel and logistics-related surcharge」，且費率表數字**不含**此附加費 → 我們的疊加方式正確 |
+
+驗證：官方頁「Product size examples」的 6 個商品 × 非旺季/旺季 = **12 個數字，
+全部分毫不差**（含服裝、Bulky 取整、XL 實重例外、體積重）。
+這 12 個案例已寫進 `test/engine.test.js` 的 A 區塊當黃金測試。
+
+### 品類佣金與倉儲（來源：gs.amazon.com.tw/pricing 北美費用表）
 
 | 項目 | 結果 |
 |---|---|
 | 18 個品類的佣金 % 與階梯門檻 | 逐列核對，除 `health` 外全部相符 |
-| `health` | **修正**：官方把「美妝和個護健康」列為 ≤$10 收 8%、>$10 收 15% 的階梯品類，原版寫固定 15%。$10 以下的健康個護商品佣金原本被高估近一倍 |
-| `minReferralFee` | **新增**：官方每個品類都標「最低銷售佣金 $0.30」，原版完全沒實作，低價商品佣金被低估 |
-| `storage.oversize` | **新增**：官方倉儲費分「標準尺寸」與「大件」兩組（大件 $0.56 / $1.40），原版對所有 size tier 一律套標準費率，大件被高估 |
-| `storage.agedSurchargeFromDays` | 確認 181 天 |
-| `accountFee.professional` | 確認 $39.99/月（另有個人計畫 $0.99/件） |
-| 媒介類 $1.80 交易手續費 | 確認 |
+| `health` | **修正**：官方把「美妝和個護健康」列為 ≤$10 收 8%、>$10 收 15% 的階梯品類，原版寫固定 15%。$9 的商品佣金原本高估近一倍 |
+| `minReferralFee` | **新增** $0.30。官方每個品類都標，原版沒實作，低價商品佣金被低估 |
+| `storage.oversize` | **新增**（$0.56 淡季 / $1.40 旺季）。原版對所有 size tier 一律套標準費率 |
+| `accountFee` / 181 天超齡 / 媒介 $1.80 | 確認無誤 |
 
-**還沒動的**：`fba.*`（配送費表）、`send.*`（SEND 費率）、`freight.*` 與 `fbm.*`（貨代行情）、
-`storage.standard.offpeak`。原因見第 2 節。
+### 還沒動的
+
+- `storage.standard.offpeak`（$0.78 vs $0.87）—— 倉儲費頁 `G200612770` 會被導到登入頁，Lens 這條路讀不到
+- `inboundPlacement.*` —— 同樣讀不到
+- `send.*` / `freight.*` / `fbm.*` —— 夥伴費率表與市場行情，只能詢價
 
 ## 3. 改完之後
 

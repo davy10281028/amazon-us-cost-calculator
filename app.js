@@ -102,10 +102,12 @@ zh: {
 
   'f.fbaFee': 'FBA 配送費 (每件)',
   'tip.fbaFee': '依商品重量、尺寸和售價自動估算。費率依售價分三檔（<$10 / $10-$50 / >$50），並含 {fuel}% 燃油附加費。已包含揀貨、包裝、配送、客服和退貨處理。可手動覆蓋。',
-  'fba.tierNote': '{tier}（計費重 {w} lb）→ ${base} + {fuel}% 燃油 = ${fee} ｜售價檔 {band}',
-  'f.season': '倉儲季節',
-  'tip.season': '標準尺寸：1-9 月淡季 ${off}/立方英尺、10-12 月旺季 ${peak}/立方英尺（約 {x} 倍）。大件（Bulky／Extra Large）較便宜：淡季 ${offOs}、旺季 ${peakOs}。系統會依商品的 size tier 自動套用對應費率。',
-  'f.season.off': '淡季 1-9月', 'f.season.peak': '旺季 10-12月',
+  'fba.tierNote': '{tier}（計費重 {w} lb）→ ${base} + {fuel}% 燃油 = ${fee} ｜售價檔 {band} ｜{card}',
+  'fba.card.nonApparel': '非服裝費率', 'fba.card.apparel': '服裝費率',
+  'fba.card.offpeak': '非旺季', 'fba.card.peak': '旺季',
+  'f.season': '旺季 / 非旺季',
+  'tip.season': '這個切換同時影響 <b>FBA 配送費</b>和<b>月倉儲費</b>，但兩者的旺季區間不同：<br>・配送費旺季：{fbaFrom} ~ {fbaTo}（官方明文）<br>・倉儲費旺季：10-12 月<br><br>倉儲費率（每立方英尺）：標準尺寸非旺季 ${off}、旺季 ${peak}（約 {x} 倍）；大件較便宜，非旺季 ${offOs}、旺季 ${peakOs}。系統依商品 size tier 自動套用。<br><br>注意 10/1-10/14 與 1/1-1/14 這兩段兩者不重疊，此工具以單一切換簡化處理。',
+  'f.season.off': '非旺季', 'f.season.peak': '旺季',
   'f.storageFee': 'FBA 月倉儲費 (每件)',
   'storage.note': '體積 {cuft} cuft × ${rate} = ${fee}/件/月（{cls}費率）',
   'storage.cls.standard': '標準尺寸',
@@ -382,10 +384,12 @@ I18N.en = {
 
   'f.fbaFee': 'FBA fulfilment fee (per unit)',
   'tip.fbaFee': 'Estimated automatically from weight, dimensions and price. Rates fall into three price bands (<$10 / $10-$50 / >$50) and include a {fuel}% fuel surcharge. Covers picking, packing, delivery, customer service and returns processing. You can override it manually.',
-  'fba.tierNote': '{tier} (billable weight {w} lb) → ${base} + {fuel}% fuel = ${fee} ｜price band {band}',
-  'f.season': 'Storage season',
-  'tip.season': 'Standard-size: ${off}/cuft off-peak (Jan-Sep), ${peak}/cuft peak (Oct-Dec) — about {x}× higher. Oversize (Bulky / Extra Large) is cheaper: ${offOs} off-peak, ${peakOs} peak. The correct rate is applied automatically from the size tier.',
-  'f.season.off': 'Off-peak Jan-Sep', 'f.season.peak': 'Peak Oct-Dec',
+  'fba.tierNote': '{tier} (billable weight {w} lb) → ${base} + {fuel}% fuel = ${fee} | price band {band} | {card}',
+  'fba.card.nonApparel': 'non-apparel card', 'fba.card.apparel': 'apparel card',
+  'fba.card.offpeak': 'non-peak', 'fba.card.peak': 'peak',
+  'f.season': 'Peak / non-peak season',
+  'tip.season': 'This toggle drives both the <b>FBA fulfilment fee</b> and the <b>monthly storage fee</b>, but their peak windows differ:<br>・Fulfilment peak: {fbaFrom} to {fbaTo} (per Amazon)<br>・Storage peak: October-December<br><br>Storage rates per cubic foot: standard-size ${off} non-peak, ${peak} peak (about {x}× higher); oversize is cheaper at ${offOs} / ${peakOs}. The right rate is applied automatically from the size tier.<br><br>Note that Oct 1-14 and Jan 1-14 fall outside the overlap; this tool simplifies both to one toggle.',
+  'f.season.off': 'Non-peak', 'f.season.peak': 'Peak',
   'f.storageFee': 'FBA monthly storage (per unit)',
   'storage.note': 'Volume {cuft} cuft × ${rate} = ${fee} per unit per month ({cls} rate)',
   'storage.cls.standard': 'standard-size',
@@ -606,13 +610,37 @@ const Engine = (function () {
   }
 
   /**
-   * FBA 配送費
-   * @returns {{fee,baseFee,fuel,tier,basisLb,priceBand}}
+   * 選出要套用的費率卡：服裝/非服裝 × 旺季/非旺季
+   * @param {{season?:string, apparel?:boolean}} opts
    */
-  function fbaFee(unitOz, dimsIn, price, R) {
+  function rateCard(R, opts) {
+    const o = opts || {};
+    const grp = o.apparel ? 'apparel' : 'nonApparel';
+    const phase = o.season === 'peak' ? 'peak' : 'nonPeak';
+    return R.fba.rates[grp][phase];
+  }
+
+  /**
+   * Bulky / Extra-Large 的加價級距數。
+   * 官方是「向上取整的整磅級距」，不是連續乘 —— 用官方範例驗證過：
+   *   Baby cot 7.90 lb, freeLb 1 → ceil(7.90) - 1 = 7 級距 → $7.55 + 7×$0.38 = $10.21
+   *   Monitor  47.59 lb, freeLb 1 → 48 - 1 = 47 級距 → $26.33 + 47×$0.38 = $44.19
+   *   TV       65.47 lb, freeLb 51 → 66 - 51 = 15 級距 → $37.32 + 15×$0.75 = $48.57
+   */
+  function lbIntervals(weightLb, freeLb) {
+    return Math.max(0, Math.ceil(weightLb) - freeLb);
+  }
+
+  /**
+   * FBA 配送費
+   * @param {{season?:'offpeak'|'peak', apparel?:boolean}} [opts]
+   * @returns {{fee,baseFee,fuel,tier,basisLb,priceBand,season,apparel}}
+   */
+  function fbaFee(unitOz, dimsIn, price, R, opts) {
+    const o = opts || {};
     const cls = classifyTier(dimsIn, unitOz, R);
     const band = priceBandOf(price, R);
-    const F = R.fba;
+    const F = rateCard(R, o);
     let base = 0;
     let basisLb = cls.shipLb;
 
@@ -634,13 +662,13 @@ const Engine = (function () {
 
     } else if (cls.tier === 'smallBulky' || cls.tier === 'largeBulky') {
       const cfg = cls.tier === 'smallBulky' ? F.bulky.small : F.bulky.large;
-      base = cfg.base[band] + Math.max(0, cls.shipLb - cfg.freeLb) * cfg.perLbUsd;
+      base = cfg.base[band] + lbIntervals(cls.shipLb, cfg.freeLb) * cfg.perLbUsd;
 
     } else {
       const xl = pickBand(F.extraLarge.bands, cls.shipLb, 'maxLb');
       // 最重的級距改用實際重量計費
       basisLb = xl.basis === 'unitWeight' ? cls.unitLb : cls.shipLb;
-      base = xl.base + Math.max(0, basisLb - xl.freeLb) * xl.perLbUsd;
+      base = xl.base[band] + lbIntervals(basisLb, xl.freeLb) * xl.perLbUsd;
     }
 
     const fuel = base * (R.fuelSurcharge.pct / 100);
@@ -651,6 +679,8 @@ const Engine = (function () {
       tier: cls.tier,
       basisLb: round2(basisLb),
       priceBand: band,
+      season: o.season === 'peak' ? 'peak' : 'offpeak',
+      apparel: !!o.apparel,
       cls
     };
   }
@@ -870,7 +900,8 @@ const Engine = (function () {
 
   return {
     OZ_PER_G, IN_PER_CM, G_PER_LB, OZ_PER_LB,
-    pickBand, priceBandOf, classifyTier, fbaFee, storageFee, storageClassOf,
+    pickBand, priceBandOf, classifyTier, fbaFee, rateCard, lbIntervals,
+    storageFee, storageClassOf,
     referralFee, referralPctPart, effectiveReferralPct, refundAdminFee, inboundFee, sendRate, volumetricKg,
     promoSavings, computeAll, computeTw, round2
   };
@@ -1170,7 +1201,8 @@ function applyI18n() {
       offOs: R.storage.oversize.offpeak.toFixed(2), peakOs: R.storage.oversize.peak.toFixed(2),
       days: R.storage.agedSurchargeFromDays,
       pct: R.refundAdmin.pct, cap: R.refundAdmin.cap.toFixed(2),
-      div: R.fbm.volumetricDivisor
+      div: R.fbm.volumetricDivisor,
+      fbaFrom: R.fba.peakWindow.from, fbaTo: R.fba.peakWindow.to
     }));
   });
 
@@ -1185,8 +1217,6 @@ function applyI18n() {
   $('appSubtitle').textContent = t('app.subtitle.' + State.origin, { ver: R.meta.version });
   $('modeDesc').textContent = t('modeDesc.' + State.mode);
   $('accountFeeLabel').textContent = R.accountFee.professional.toFixed(2);
-  $('rateOffpeak').textContent = R.storage.standard.offpeak.toFixed(2);
-  $('ratePeak').textContent = R.storage.standard.peak.toFixed(2);
   $('refundNote').textContent = t('note.refundAdmin', { pct: R.refundAdmin.pct, cap: R.refundAdmin.cap.toFixed(2) });
   $('brandRebateNote').textContent = t('note.rebate.' + (State.rebateLevel === 'off' ? 'off' : 't' + State.rebateLevel));
 
@@ -1383,8 +1413,14 @@ function onFbmMethodChange() { applyFbmMethodDefaults(); recalc(); }
 /* =========================================================================
  * 尺寸 / 重量優化提示
  * =======================================================================*/
+/** 目前該套用哪張費率卡：旺季由季節切換決定，服裝由品類決定 */
+function fbaOpts() {
+  const cat = R.categories[$('category').value];
+  return { season: State.season, apparel: !!(cat && cat.apparel) };
+}
+
 function sizeOptimizationHint(unitOz, dimsIn, price, current) {
-  const feeAt = (oz) => Engine.fbaFee(oz, dimsIn, price, R).fee;
+  const feeAt = (oz) => Engine.fbaFee(oz, dimsIn, price, R, fbaOpts()).fee;
   const sorted = [dimsIn.l, dimsIn.w, dimsIn.h].slice().sort((a, b) => a - b);
   const maxSide = sorted[2], medSide = sorted[1], minSide = sorted[0];
 
@@ -1420,7 +1456,7 @@ function sizeOptimizationHint(unitOz, dimsIn, price, current) {
     if (maxSide <= ls.maxLongestIn && medSide <= ls.maxMedianIn && minSide <= ls.maxShortestIn &&
         current.basisLb > ls.maxShipLb && current.basisLb <= ls.maxShipLb + 5) {
       const target = Engine.fbaFee(ls.maxShipLb * Engine.OZ_PER_LB,
-        { l: ls.maxLongestIn, w: ls.maxMedianIn, h: ls.maxShortestIn }, price, R).fee;
+        { l: ls.maxLongestIn, w: ls.maxMedianIn, h: ls.maxShortestIn }, price, R, fbaOpts()).fee;
       const saving = current.fee - target;
       if (saving > 0.50) return t('opt.toLargeStd', { saving: saving.toFixed(2) });
     }
@@ -1443,7 +1479,7 @@ function recalc() {
   const dimsIn = dimsInches();
 
   /* --- 自動估算：FBA 配送費 --- */
-  const fbaInfo = Engine.fbaFee(unitOz, dimsIn, price, R);
+  const fbaInfo = Engine.fbaFee(unitOz, dimsIn, price, R, fbaOpts());
   $('fbaFee').value = fbaInfo.fee;
   const bandLabel = fbaInfo.priceBand === 'low' ? '<$' + R.fba.priceBands.lowMax
     : fbaInfo.priceBand === 'high' ? '>$' + R.fba.priceBands.highMin
@@ -1451,7 +1487,9 @@ function recalc() {
   $('fbaTierNote').textContent = t('fba.tierNote', {
     tier: t('tier.' + fbaInfo.tier), w: fbaInfo.basisLb.toFixed(2),
     base: fbaInfo.baseFee.toFixed(2), fuel: R.fuelSurcharge.pct,
-    fee: fbaInfo.fee.toFixed(2), band: bandLabel
+    fee: fbaInfo.fee.toFixed(2), band: bandLabel,
+    card: t('fba.card.' + (fbaInfo.apparel ? 'apparel' : 'nonApparel')) + ' / ' +
+          t('fba.card.' + fbaInfo.season)
   });
 
   const hint = sizeOptimizationHint(unitOz, dimsIn, price, fbaInfo);

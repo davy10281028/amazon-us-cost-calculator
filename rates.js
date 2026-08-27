@@ -17,13 +17,13 @@ window.AMZ_RATES = {
    * META — UI 右上角的「費率版本」徽章會讀這裡
    * -------------------------------------------------------------------------*/
   meta: {
-    version: '2026.04+partial',   // 費率基準期（不是程式版本）
-    lastUpdated: '2026-04-22',    // FBA 配送費那批的核對日期（最舊的一項為準）
-    nextReviewDue: '2026-10-01',  // 下次該複查的日期；過期 UI 會轉紅色警示
+    version: '2026.08',           // 費率基準期（不是程式版本）
+    lastUpdated: '2026-08-27',    // 最舊的一項為準（目前 SEND／貨代仍是 2026-04）
+    nextReviewDue: '2026-10-15',  // 配送費旺季生效日；過期 UI 會轉紅色警示
     staleAfterDays: 120,          // 超過這個天數沒更新就顯示警示
     note: {
-      zh: '2026-08-27 以官方公開頁（gs.amazon.com.tw/pricing）核對並修正：品類佣金、最低佣金 $0.30、大件倉儲費、health 階梯。FBA 配送費表與 SEND／貨代費率仍為 2026-04 版本，需登入 Seller Central 複查（見 docs/UPDATING-RATES.md 第 2 節）。',
-      en: 'On 2026-08-27, verified and corrected against the official public page (gs.amazon.com.tw/pricing): category referral fees, the $0.30 minimum referral fee, oversize storage rates, and the health tier. The FBA fulfilment fee table and the SEND / forwarder rates are still the 2026-04 vintage and need a Seller Central login to re-verify (see section 2 of docs/UPDATING-RATES.md).'
+      zh: '2026-08-27 經 Lens 讀取 Seller Central 官方表格全面更新 FBA 配送費（含服裝／非服裝、旺季／非旺季四張費率卡），並修正品類佣金、最低佣金 $0.30、大件倉儲費。⚠️ 配送費旺季 2026-10-15 生效，屆時請把季節切到「旺季」。SEND 與貨代費率仍為 2026-04 行情，需向服務商詢價。',
+      en: 'On 2026-08-27 the FBA fulfilment fees were fully refreshed from the official Seller Central tables via Lens (four rate cards: apparel/non-apparel x peak/non-peak), along with corrections to category referral fees, the $0.30 minimum referral fee and oversize storage. Peak fulfilment fees take effect 2026-10-15 — switch the season toggle to Peak then. SEND and forwarder rates are still the 2026-04 market estimates and need fresh quotes.'
     }
   },
 
@@ -42,8 +42,11 @@ window.AMZ_RATES = {
   fuelSurcharge: {
     pct: 3.5,
     effectiveFrom: '2026-04-17',
-    _source: 'https://sellercentral.amazon.com/help/hub/reference/external/GABBX6GZPA8MSZGW',
-    _verified: '2026-04'
+    // 官方原文：「Starting April 17, 2026, a 3.5% fuel and logistics-related surcharge
+    // will be applied to fulfillment fees across FBA in the US and Canada...」
+    // fba.rates 的表格數字均「不含」此附加費，需另外加上。
+    _source: 'https://sellercentral.amazon.dev/help/hub/reference/external/GABBX6GZPA8MSZGW',
+    _verified: '2026-08-27'
   },
 
   /* ---------------------------------------------------------------------------
@@ -74,8 +77,9 @@ window.AMZ_RATES = {
                    label: { zh: 'Beauty & Personal Care 美妝個護', en: 'Beauty & Personal Care' } },
     baby:        { pct: 15, tiered: true, threshold: 10,  lowPct: 8,  above: false,
                    label: { zh: 'Baby Products 嬰兒用品',          en: 'Baby Products' } },
-    clothing:    { pct: 17, tiered: false, label: { zh: 'Clothing & Accessories 服飾',    en: 'Clothing & Accessories' },
-                   hint: { zh: '退貨率高，注意', en: 'watch the high return rate' } },
+    clothing:    { pct: 17, tiered: false, apparel: true,
+                   label: { zh: 'Clothing & Accessories 服飾',    en: 'Clothing & Accessories' },
+                   hint: { zh: '退貨率高；FBA 套用服裝專用費率表', en: 'high return rate; uses the apparel FBA rate card' } },
     electronics: { pct: 8,  tiered: false, label: { zh: 'Electronics 電子產品',           en: 'Electronics' },
                    hint: { zh: '最低標準費率', en: 'lowest standard rate' } },
     camera:      { pct: 8,  tiered: false, label: { zh: 'Camera & Photo 相機攝影',        en: 'Camera & Photo' } },
@@ -129,76 +133,240 @@ window.AMZ_RATES = {
   },
 
   /* ---------------------------------------------------------------------------
-   * FBA 配送費 (Fulfillment Fee) — 非服裝、非旺季
+   * FBA 配送費 (Fulfillment Fee)
    *
-   *   費率依「售價」分三個 band：
-   *     low  = 售價 < $10
-   *     mid  = 售價 $10–$50
-   *     high = 售價 > $50
+   *   來源：Seller Central GABBX6GZPA8MSZGW「2026 US FBA fulfillment fee changes」
+   *   透過 Lens (sellercentral.amazon.dev) 於 2026-08-27 直接讀取官方表格。
    *
-   *   Small Standard 依「實際重量 (oz)」查表。
-   *   Large Standard 以上依「計費重量 = max(實際重量, 體積重)」查表。
-   *   Extra Large 150 lb 以上回頭用「實際重量」。
+   *   四張表：服裝 / 非服裝 × 非旺季 / 旺季
+   *     nonPeak = 2026-01-15 ~ 2026-10-14
+   *     peak    = 2026-10-15 ~ 2027-01-14   ← 官方明文，與倉儲費旺季（10-12月）不同
    *
-   *   ⚠️ 已知待複查項目（見 docs/UPDATING-RATES.md）：
-   *      bulky.small 的 high band ($7.55) 低於 mid band ($9.61)，
-   *      這在官方費率表上不合直覺，下次更新請優先對照。
+   *   費率依「售價」分三檔：low = <$10、mid = $10-$50、high = >$50
+   *   ⚠️ 表格數字「不含」燃油附加費，由 fuelSurcharge.pct 另外加上（官方註明）。
+   *
+   *   計費重量基準（官方原文）：
+   *     Large standard / Small Bulky / Large Bulky / Extra-Large
+   *       → max(實際重量, 體積重)
+   *     Small standard 與 Extra-Large 150+ lb
+   *       → 僅用實際重量
+   *
+   *   ⚠️ Bulky / Extra-Large 的加價是「向上取整的整磅級距」：
+   *      級距數 = max(0, ceil(計費重) - freeLb)，不是連續乘。
+   *      官方範例：Baby cot 7.90 lb → ceil(7.90)-1 = 7 級距
+   *                $7.55 + 7 × $0.38 = $10.21 ✓
    * -------------------------------------------------------------------------*/
   fba: {
     priceBands: { lowMax: 10, highMin: 50 },
 
-    smallStandard: {
-      basis: 'unitWeight',
-      bands: [
-        { maxOz: 2,  low: 2.29, mid: 3.06, high: 3.32 },
-        { maxOz: 4,  low: 2.38, mid: 3.15, high: 3.42 },
-        { maxOz: 6,  low: 2.47, mid: 3.24, high: 3.45 },
-        { maxOz: 8,  low: 2.56, mid: 3.33, high: 3.54 },
-        { maxOz: 10, low: 2.66, mid: 3.43, high: 3.68 },
-        { maxOz: 12, low: 2.76, mid: 3.53, high: 3.78 },
-        { maxOz: 14, low: 2.83, mid: 3.60, high: 3.91 },
-        { maxOz: 16, low: 2.88, mid: 3.65, high: 3.96 }
-      ]
+    // 配送費旺季視窗（官方明文；注意與 storage 的旺季月份不同）
+    peakWindow: { from: '2026-10-15', to: '2027-01-14' },
+    nonPeakWindow: { from: '2026-01-15', to: '2026-10-14' },
+
+    rates: {
+      /* ===== 非服裝 (excluding apparel) ===== */
+      nonApparel: {
+        // 非旺季 2026-01-15 ~ 2026-10-14
+        nonPeak: {
+          smallStandard: {
+            basis: 'unitWeight',
+            bands: [
+              { maxOz:    2, low:   2.43, mid:   3.32, high:   3.58 },
+              { maxOz:    4, low:   2.49, mid:   3.42, high:   3.68 },
+              { maxOz:    6, low:   2.56, mid:   3.45, high:   3.71 },
+              { maxOz:    8, low:   2.66, mid:   3.54, high:    3.8 },
+              { maxOz:   10, low:   2.77, mid:   3.68, high:   3.94 },
+              { maxOz:   12, low:   2.82, mid:   3.78, high:   4.04 },
+              { maxOz:   14, low:   2.92, mid:   3.91, high:   4.17 },
+              { maxOz:   16, low:   2.95, mid:   3.96, high:   4.22 }
+            ]
+          },
+          largeStandard: {
+            basis: 'shipWeight',
+            bands: [
+              { maxLb:  0.25, low:   2.91, mid:   3.73, high:   3.99 },
+              { maxLb:   0.5, low:   3.13, mid:   3.95, high:   4.21 },
+              { maxLb:  0.75, low:   3.38, mid:    4.2, high:   4.46 },
+              { maxLb:     1, low:   3.78, mid:    4.6, high:   4.86 },
+              { maxLb:  1.25, low:   4.22, mid:   5.04, high:    5.3 },
+              { maxLb:   1.5, low:    4.6, mid:   5.42, high:   5.68 },
+              { maxLb:  1.75, low:   4.75, mid:   5.57, high:   5.83 },
+              { maxLb:     2, low:      5, mid:   5.82, high:   6.08 },
+              { maxLb:  2.25, low:    5.1, mid:   5.92, high:   6.18 },
+              { maxLb:   2.5, low:   5.28, mid:    6.1, high:   6.36 },
+              { maxLb:  2.75, low:   5.44, mid:   6.26, high:   6.52 },
+              { maxLb:     3, low:   5.85, mid:   6.67, high:   6.93 }
+            ],
+            over: { fromLb: 3, base: { low: 6.15, mid: 6.97, high: 7.23 }, perIntervalUsd: 0.08, intervalOz: 4 }
+          },
+          bulky: {
+            basis: 'shipWeight',
+            small: { base: { low: 6.78, mid: 7.55, high: 7.55 }, freeLb: 1, perLbUsd: 0.38 },
+            large: { base: { low: 8.58, mid: 9.35, high: 9.35 }, freeLb: 1, perLbUsd: 0.38 }
+          },
+          extraLarge: {
+            basis: 'shipWeight',
+            bands: [
+              { maxLb:       50, base: { low: 25.56, mid: 26.33, high: 26.33 }, freeLb:   1, perLbUsd: 0.38 },
+              { maxLb:       70, base: { low: 36.55, mid: 37.32, high: 37.32 }, freeLb:  51, perLbUsd: 0.75 },
+              { maxLb:      150, base: { low: 50.55, mid: 51.32, high: 51.32 }, freeLb:  71, perLbUsd: 0.75 },
+              { maxLb: Infinity, base: { low: 194.18, mid: 194.95, high: 194.95 }, freeLb: 151, perLbUsd: 0.19, basis: 'unitWeight' }
+            ]
+          }
+        },
+        // 旺季 2026-10-15 ~ 2027-01-14
+        peak: {
+          smallStandard: {
+            basis: 'unitWeight',
+            bands: [
+              { maxOz:    2, low:   2.62, mid:   3.51, high:   3.77 },
+              { maxOz:    4, low:   2.68, mid:   3.61, high:   3.87 },
+              { maxOz:    6, low:   2.76, mid:   3.65, high:   3.91 },
+              { maxOz:    8, low:   2.86, mid:   3.74, high:      4 },
+              { maxOz:   10, low:   2.98, mid:   3.89, high:   4.15 },
+              { maxOz:   12, low:   3.03, mid:   3.99, high:   4.25 },
+              { maxOz:   14, low:   3.14, mid:   4.13, high:   4.39 },
+              { maxOz:   16, low:   3.17, mid:   4.18, high:   4.44 }
+            ]
+          },
+          largeStandard: {
+            basis: 'shipWeight',
+            bands: [
+              { maxLb:  0.25, low:   3.15, mid:   3.97, high:   4.23 },
+              { maxLb:   0.5, low:   3.39, mid:   4.21, high:   4.47 },
+              { maxLb:  0.75, low:   3.66, mid:   4.48, high:   4.74 },
+              { maxLb:     1, low:   4.07, mid:   4.89, high:   5.15 },
+              { maxLb:  1.25, low:   4.52, mid:   5.34, high:    5.6 },
+              { maxLb:   1.5, low:   4.91, mid:   5.73, high:   5.99 },
+              { maxLb:  1.75, low:   5.07, mid:   5.89, high:   6.15 },
+              { maxLb:     2, low:   5.33, mid:   6.15, high:   6.41 },
+              { maxLb:  2.25, low:   5.47, mid:   6.29, high:   6.55 },
+              { maxLb:   2.5, low:   5.67, mid:   6.49, high:   6.75 },
+              { maxLb:  2.75, low:   5.84, mid:   6.66, high:   6.92 },
+              { maxLb:     3, low:   6.26, mid:   7.08, high:   7.34 }
+            ],
+            over: { fromLb: 3, base: { low: 6.69, mid: 7.51, high: 7.77 }, perIntervalUsd: 0.08, intervalOz: 4 }
+          },
+          bulky: {
+            basis: 'shipWeight',
+            small: { base: { low: 7.82, mid: 8.59, high: 8.59 }, freeLb: 1, perLbUsd: 0.38 },
+            large: { base: { low: 9.62, mid: 10.39, high: 10.39 }, freeLb: 1, perLbUsd: 0.38 }
+          },
+          extraLarge: {
+            basis: 'shipWeight',
+            bands: [
+              { maxLb:       50, base: { low: 28.29, mid: 29.06, high: 29.06 }, freeLb:   1, perLbUsd: 0.38 },
+              { maxLb:       70, base: { low: 39.36, mid: 40.13, high: 40.13 }, freeLb:  51, perLbUsd: 0.75 },
+              { maxLb:      150, base: { low: 54.97, mid: 55.74, high: 55.74 }, freeLb:  71, perLbUsd: 0.75 },
+              { maxLb: Infinity, base: { low: 202.69, mid: 203.46, high: 203.46 }, freeLb: 151, perLbUsd: 0.19, basis: 'unitWeight' }
+            ]
+          }
+        }
+      },
+      /* ===== 服裝 (apparel) ===== */
+      apparel: {
+        // 非旺季 2026-01-15 ~ 2026-10-14
+        nonPeak: {
+          smallStandard: {
+            basis: 'unitWeight',
+            bands: [
+              { maxOz:    2, low:   2.62, mid:   3.51, high:   3.77 },
+              { maxOz:    4, low:   2.64, mid:   3.54, high:    3.8 },
+              { maxOz:    6, low:   2.68, mid:   3.59, high:   3.85 },
+              { maxOz:    8, low:   2.81, mid:   3.69, high:   3.95 },
+              { maxOz:   10, low:      3, mid:   3.91, high:   4.17 },
+              { maxOz:   12, low:    3.1, mid:   4.09, high:   4.35 },
+              { maxOz:   14, low:    3.2, mid:    4.2, high:   4.46 },
+              { maxOz:   16, low:    3.3, mid:   4.25, high:   4.51 }
+            ]
+          },
+          largeStandard: {
+            basis: 'shipWeight',
+            bands: [
+              { maxLb:  0.25, low:   3.48, mid:    4.3, high:   4.56 },
+              { maxLb:   0.5, low:   3.68, mid:    4.5, high:   4.76 },
+              { maxLb:  0.75, low:    3.9, mid:   4.72, high:   4.98 },
+              { maxLb:     1, low:   4.35, mid:   5.17, high:   5.43 },
+              { maxLb:  1.25, low:   5.05, mid:   5.87, high:   6.13 },
+              { maxLb:   1.5, low:   5.22, mid:   6.04, high:    6.3 },
+              { maxLb:  1.75, low:   5.32, mid:   6.14, high:    6.4 },
+              { maxLb:     2, low:   5.43, mid:   6.25, high:   6.51 },
+              { maxLb:  2.25, low:   5.78, mid:    6.6, high:   6.86 },
+              { maxLb:   2.5, low:    5.9, mid:   6.72, high:   6.98 },
+              { maxLb:  2.75, low:   5.95, mid:   6.77, high:   7.03 },
+              { maxLb:     3, low:   6.08, mid:    6.9, high:   7.16 }
+            ],
+            over: { fromLb: 3, base: { low: 6.15, mid: 6.97, high: 7.23 }, perIntervalUsd: 0.16, intervalOz: 8 }
+          },
+          bulky: {
+            basis: 'shipWeight',
+            small: { base: { low: 6.78, mid: 7.55, high: 7.55 }, freeLb: 1, perLbUsd: 0.38 },
+            large: { base: { low: 8.58, mid: 9.35, high: 9.35 }, freeLb: 1, perLbUsd: 0.38 }
+          },
+          extraLarge: {
+            basis: 'shipWeight',
+            bands: [
+              { maxLb:       50, base: { low: 25.56, mid: 26.33, high: 26.33 }, freeLb:   1, perLbUsd: 0.38 },
+              { maxLb:       70, base: { low: 36.55, mid: 37.32, high: 37.32 }, freeLb:  51, perLbUsd: 0.75 },
+              { maxLb:      150, base: { low: 50.55, mid: 51.32, high: 51.32 }, freeLb:  71, perLbUsd: 0.75 },
+              { maxLb: Infinity, base: { low: 194.18, mid: 194.95, high: 194.95 }, freeLb: 151, perLbUsd: 0.19, basis: 'unitWeight' }
+            ]
+          }
+        },
+        // 旺季 2026-10-15 ~ 2027-01-14
+        peak: {
+          smallStandard: {
+            basis: 'unitWeight',
+            bands: [
+              { maxOz:    2, low:   2.85, mid:   3.74, high:      4 },
+              { maxOz:    4, low:   2.87, mid:   3.77, high:   4.03 },
+              { maxOz:    6, low:   2.93, mid:   3.84, high:    4.1 },
+              { maxOz:    8, low:   3.06, mid:   3.94, high:    4.2 },
+              { maxOz:   10, low:   3.27, mid:   4.18, high:   4.44 },
+              { maxOz:   12, low:   3.37, mid:   4.36, high:   4.62 },
+              { maxOz:   14, low:   3.49, mid:   4.49, high:   4.75 },
+              { maxOz:   16, low:   3.59, mid:   4.54, high:    4.8 }
+            ]
+          },
+          largeStandard: {
+            basis: 'shipWeight',
+            bands: [
+              { maxLb:  0.25, low:   3.79, mid:   4.61, high:   4.87 },
+              { maxLb:   0.5, low:      4, mid:   4.82, high:   5.08 },
+              { maxLb:  0.75, low:   4.23, mid:   5.05, high:   5.31 },
+              { maxLb:     1, low:   4.69, mid:   5.51, high:   5.77 },
+              { maxLb:  1.25, low:   5.42, mid:   6.24, high:    6.5 },
+              { maxLb:   1.5, low:   5.59, mid:   6.41, high:   6.67 },
+              { maxLb:  1.75, low:   5.71, mid:   6.53, high:   6.79 },
+              { maxLb:     2, low:   5.82, mid:   6.64, high:    6.9 },
+              { maxLb:  2.25, low:   6.22, mid:   7.04, high:    7.3 },
+              { maxLb:   2.5, low:   6.34, mid:   7.16, high:   7.42 },
+              { maxLb:  2.75, low:   6.41, mid:   7.23, high:   7.49 },
+              { maxLb:     3, low:   6.54, mid:   7.36, high:   7.62 }
+            ],
+            over: { fromLb: 3, base: { low: 6.82, mid: 7.64, high: 7.9 }, perIntervalUsd: 0.16, intervalOz: 8 }
+          },
+          bulky: {
+            basis: 'shipWeight',
+            small: { base: { low: 7.82, mid: 8.59, high: 8.59 }, freeLb: 1, perLbUsd: 0.38 },
+            large: { base: { low: 9.62, mid: 10.39, high: 10.39 }, freeLb: 1, perLbUsd: 0.38 }
+          },
+          extraLarge: {
+            basis: 'shipWeight',
+            bands: [
+              { maxLb:       50, base: { low: 28.29, mid: 29.06, high: 29.06 }, freeLb:   1, perLbUsd: 0.38 },
+              { maxLb:       70, base: { low: 39.36, mid: 40.13, high: 40.13 }, freeLb:  51, perLbUsd: 0.75 },
+              { maxLb:      150, base: { low: 54.97, mid: 55.74, high: 55.74 }, freeLb:  71, perLbUsd: 0.75 },
+              { maxLb: Infinity, base: { low: 202.69, mid: 203.46, high: 203.46 }, freeLb: 151, perLbUsd: 0.19, basis: 'unitWeight' }
+            ]
+          }
+        }
+      }
     },
 
-    largeStandard: {
-      basis: 'shipWeight',
-      bands: [
-        { maxLb: 0.25, low: 2.91, mid: 3.68, high: 3.73 },   //  4 oz
-        { maxLb: 0.50, low: 3.13, mid: 3.90, high: 3.95 },   //  8 oz
-        { maxLb: 0.75, low: 3.38, mid: 4.15, high: 4.20 },   // 12 oz
-        { maxLb: 1.00, low: 3.78, mid: 4.55, high: 4.60 },   // 16 oz
-        { maxLb: 1.25, low: 4.22, mid: 4.99, high: 5.04 },
-        { maxLb: 1.50, low: 4.60, mid: 5.37, high: 5.42 },
-        { maxLb: 1.75, low: 4.75, mid: 5.52, high: 5.57 },
-        { maxLb: 2.00, low: 5.00, mid: 5.77, high: 5.82 },
-        { maxLb: 2.25, low: 5.10, mid: 5.87, high: 5.92 },
-        { maxLb: 2.50, low: 5.28, mid: 6.05, high: 6.10 },
-        { maxLb: 2.75, low: 5.44, mid: 6.21, high: 6.26 },
-        { maxLb: 3.00, low: 5.85, mid: 6.62, high: 6.67 }
-      ],
-      // 3 lb 以上：base + 每滿 4 oz 加 $0.08
-      over: { fromLb: 3, base: { low: 6.15, mid: 6.92, high: 6.97 }, perIntervalUsd: 0.08, intervalOz: 4 }
-    },
-
-    bulky: {
-      basis: 'shipWeight',
-      small: { base: { low: 9.61, mid: 9.61, high: 7.55 }, freeLb: 1, perLbUsd: 0.38 },
-      large: { base: { low: 9.61, mid: 9.61, high: 9.35 }, freeLb: 1, perLbUsd: 0.38 }
-    },
-
-    extraLarge: {
-      basis: 'shipWeight',
-      bands: [
-        { maxLb: 50,       base: 26.33,  freeLb: 1,   perLbUsd: 0.38 },
-        { maxLb: 70,       base: 40.12,  freeLb: 51,  perLbUsd: 0.75 },
-        { maxLb: 150,      base: 54.81,  freeLb: 71,  perLbUsd: 0.75 },
-        { maxLb: Infinity, base: 194.95, freeLb: 151, perLbUsd: 0.19, basis: 'unitWeight' }
-      ]
-    },
-
-    _source: 'https://sellercentral.amazon.com/help/hub/reference/external/GABBX6GZPA8MSZGW',
-    _verified: '2026-04'
+    _source: 'https://sellercentral.amazon.dev/help/hub/reference/external/GABBX6GZPA8MSZGW',
+    _sourceNote: '經 Lens (amazon.dev, Midway 認證) 讀取官方表格，非人工轉抄',
+    _verified: '2026-08-27'
   },
 
   /* ---------------------------------------------------------------------------

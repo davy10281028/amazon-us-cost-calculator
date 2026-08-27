@@ -84,7 +84,8 @@ const DYNAMIC_PREFIXES = [
   'adv.fbm', 'adv.tw', 'adv.margin', 'badge.rates', 'promo.adsTier',
   'promo.shipDomestic', 'promo.shipCross', 'tw.suggest.',
   'cat.note.tiered',  // 用 t(c.above ? '...Above' : '...Below') 三元傳入
-  'storage.cls.'      // 用 t('storage.cls.' + storageClass) 動態組成
+  'storage.cls.',     // 用 t('storage.cls.' + storageClass) 動態組成
+  'fba.card.'         // 用 t('fba.card.' + apparel/season) 動態組成
 ];
 const used = new Set([...htmlKeys, ...tCalls]);
 check('沒有沒人用的孤兒字典鍵',
