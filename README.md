@@ -32,7 +32,7 @@ amazon-cost-calculator/
 ├── docs/
 │   └── UPDATING-RATES.md   # ★ 每季更新的逐項對照清單
 ├── test/
-│   ├── engine.test.js      # 76 項斷言：與原版 parity + bug 迴歸 + 端到端
+│   ├── engine.test.js      # 104 項斷言：與原版 parity + bug 迴歸 + 公式驗算 + 端到端
 │   └── lint.js             # i18n / element id / 字典對齊靜態檢查
 ├── NOTICE.md               # 原作者標註
 └── README.md
@@ -116,7 +116,7 @@ node test/lint.js
 - **輸入範圍檢查**：超出 min/max 的欄位邊框轉紅
 - **模式切換改為純 CSS class 驅動**（原版混用 inline style 與 class，容易打架）
 - **台灣電商模式**：加上材積重計算、月銷量輸入、海外倉選項、無解時的說明文字
-- **測試**：76 項斷言 + 靜態 lint
+- **測試**：104 項斷言 + 靜態 lint；費率 parity 會依 `meta.version` 自動跳過，不會假失敗
 
 ---
 
