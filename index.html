@@ -1,0 +1,767 @@
+<!DOCTYPE html>
+<html lang="zh-TW">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>Amazon 美國站成本計算機 | 台灣賣家專用</title>
+<meta name="description" content="專為台灣賣家設計的 Amazon 美國站 FBA 成本與利潤計算工具，含品類佣金查詢、FBA 費用自動估算、倉儲費計算、廣告成本分析、新賣家優惠模擬。">
+<meta name="color-scheme" content="light">
+<link rel="stylesheet" href="styles.css">
+</head>
+<body>
+
+<header>
+  <h1 data-i18n-html="app.title">🇺🇸 Amazon <span>美國站</span> FBA 成本計算機</h1>
+  <p id="appSubtitle">台灣出貨 ｜ 依據 Amazon 官方費率</p>
+  <div class="header-tools">
+    <div class="lang-toggle">
+      <button class="active" id="btn-lang-zh" type="button">中文</button>
+      <button id="btn-lang-en" type="button">EN</button>
+    </div>
+    <span class="rates-badge" id="ratesBadge" title="">
+      <span class="dot"></span><span id="ratesBadgeText">費率 —</span>
+    </span>
+  </div>
+</header>
+
+<div class="mode-bar no-print">
+  <div class="origin-bar">
+    <button class="active" id="btn-origin-tw" type="button" data-i18n="origin.tw">🇹🇼 台灣出貨</button>
+    <button id="btn-origin-cn" type="button" data-i18n="origin.cn">🇨🇳 中國出貨</button>
+  </div>
+  <div class="mode-toggle">
+    <button class="active" id="btn-mode-basic"    type="button" data-i18n="mode.basic">📦 FBA 基礎</button>
+    <button id="btn-mode-advanced" type="button" data-i18n="mode.advanced">🔧 FBA 進階</button>
+    <button id="btn-mode-fbm"      type="button" data-i18n="mode.fbm">🚚 FBM 自配送</button>
+    <button id="btn-mode-fbm-tw"   type="button" data-i18n="mode.fbmtw">🇹🇼 台灣電商 → 美國</button>
+  </div>
+  <div id="modeDesc"></div>
+</div>
+
+<div class="action-bar no-print">
+  <button type="button" id="btn-share">🔗 <span data-i18n="action.share">複製分享連結</span></button>
+  <button type="button" id="btn-csv">📄 <span data-i18n="action.csv">匯出 CSV</span></button>
+  <button type="button" id="btn-print">🖨️ <span data-i18n="action.print">列印 / 存成 PDF</span></button>
+  <button type="button" id="btn-reset" class="danger">↺ <span data-i18n="action.reset">重設為預設值</span></button>
+</div>
+
+<div class="container" id="appContainer" data-mode="basic">
+  <div class="grid">
+
+    <!-- ① 開店費用 & 產品 -->
+    <div class="card">
+      <div class="card-title" data-i18n="card.account">🏪 開店費用 &amp; 產品</div>
+
+      <div class="form-group">
+        <label>
+          <span data-i18n="f.accountFee">賣家帳戶月費 (固定)</span>
+          <button class="tip" type="button" data-tip-i18n="tip.accountFee">?</button>
+        </label>
+        <div class="fixed-fee">$<span id="accountFeeLabel">39.99</span> USD / <span data-i18n="unit.month">月</span></div>
+      </div>
+
+      <hr class="section-divider">
+
+      <div class="form-group">
+        <label><span data-i18n="f.sellPrice">產品售價 (USD)</span></label>
+        <div class="input-row">
+          <input type="number" id="sellPrice" value="25.99" step="0.01" min="0" max="100000">
+          <span class="unit">USD</span>
+        </div>
+      </div>
+
+      <div class="form-group">
+        <label><span data-i18n="f.productCost">產品成本 (含包裝)</span></label>
+        <div class="input-row">
+          <input type="number" id="productCost" value="2.50" step="0.01" min="0" max="100000">
+          <span class="unit">USD</span>
+        </div>
+        <div class="hint" data-i18n="f.productCost.hint">工廠出廠價 + 包材 + 標籤貼紙（美金）</div>
+      </div>
+
+      <div class="form-group">
+        <label>
+          <span data-i18n="f.monthlySales">預估月銷量</span>
+          <button class="tip" type="button" data-tip-i18n="tip.monthlySales">?</button>
+        </label>
+        <div class="input-row">
+          <input type="number" id="monthlySales" value="200" step="10" min="1" max="1000000">
+          <span class="unit" data-i18n="unit.unitsMo">件/月</span>
+        </div>
+      </div>
+    </div>
+
+    <!-- ② 銷售佣金 -->
+    <div class="card">
+      <div class="card-title" data-i18n="card.referral">💰 銷售佣金</div>
+
+      <div class="form-group">
+        <label>
+          <span data-i18n="f.category">商品品類</span>
+          <span class="auto-badge" data-i18n="badge.autoReferral">自動帶入佣金</span>
+        </label>
+        <select id="category"></select>
+      </div>
+
+      <div class="form-group">
+        <label>
+          <span data-i18n="f.referralPct">銷售佣金 (Referral Fee)</span>
+          <button class="tip" type="button" data-tip-i18n="tip.referralPct">?</button>
+        </label>
+        <div class="input-row">
+          <input type="number" id="referralPct" value="15" step="0.1" min="0" max="50" readonly>
+          <span class="unit">%</span>
+        </div>
+        <div class="fee-detail" id="referralNote"></div>
+      </div>
+
+      <hr class="section-divider gate g-fba">
+
+      <div class="form-group gate g-fba">
+        <label>
+          <span data-i18n="f.brandRebate">🏷️ 新品牌入駐退傭 (Brand Referral Bonus)</span>
+          <button class="tip" type="button" data-tip-i18n="tip.brandRebate">?</button>
+        </label>
+        <div class="toggle-row">
+          <button class="active" id="btn-rebate-off" type="button" data-i18n="f.rebate.off">未申請</button>
+          <button id="btn-rebate-10" type="button" data-i18n="f.rebate.t10">退傭 10% (前 $50K)</button>
+          <button id="btn-rebate-5"  type="button" data-i18n="f.rebate.t5">退傭 5% (超過 $50K)</button>
+        </div>
+        <div class="input-row">
+          <input type="number" id="brandRebatePct" value="0" step="0.5" min="0" max="20">
+          <span class="unit">%</span>
+        </div>
+        <div class="fee-detail" id="brandRebateNote"></div>
+      </div>
+    </div>
+
+    <!-- ③ 物流 & FBA -->
+    <div class="card gate g-fba">
+      <div class="card-title" data-i18n="card.logisticsFba">🚢 物流運輸 (FBA)</div>
+
+      <div class="form-group">
+        <label><span data-i18n="f.weight">商品重量 (含包裝)</span></label>
+        <div class="toggle-row">
+          <button class="active" id="btn-wt-g"  type="button" data-i18n="unit.g">公克 (g)</button>
+          <button id="btn-wt-kg" type="button" data-i18n="unit.kg">公斤 (kg)</button>
+          <button id="btn-wt-lb" type="button" data-i18n="unit.lb">磅 (lb)</button>
+        </div>
+        <div class="input-row">
+          <input type="number" id="weightInput" value="280" step="10" min="0" max="500000">
+          <span class="unit" id="weightUnitLabel">g</span>
+        </div>
+      </div>
+
+      <div class="form-group">
+        <label>
+          <span data-i18n="f.dims">商品尺寸 (含包裝)</span>
+          <button class="tip" type="button" data-tip-i18n="tip.dims">?</button>
+        </label>
+        <div class="toggle-row">
+          <button class="active" id="btn-dim-cm" type="button" data-i18n="unit.cm">公分 (cm)</button>
+          <button id="btn-dim-in" type="button" data-i18n="unit.in">英吋 (in)</button>
+        </div>
+        <div class="input-row">
+          <input type="number" id="dimL" value="25" step="0.5" min="0" max="5000">
+          <span class="unit">×</span>
+          <input type="number" id="dimW" value="15" step="0.5" min="0" max="5000">
+          <span class="unit">×</span>
+          <input type="number" id="dimH" value="5" step="0.5" min="0" max="5000">
+          <span class="unit" id="dimUnitLabel">cm</span>
+        </div>
+      </div>
+
+      <hr class="section-divider">
+
+      <div class="form-group">
+        <label>
+          <span data-i18n="f.shipMethod">頭程運費方式</span>
+          <button class="tip" type="button" data-tip-i18n="tip.shipMethod">?</button>
+        </label>
+        <select id="shipMethod"></select>
+      </div>
+
+      <div class="form-group" id="shipRateGroup">
+        <label><span data-i18n="f.shipRate">頭程運費單價</span></label>
+        <div class="input-row">
+          <input type="number" id="shipRate" value="9.43" step="0.1" min="0" max="10000">
+          <span class="unit" id="shipRateUnit">USD/kg</span>
+        </div>
+        <div class="fee-detail" id="shipCalcNote"></div>
+        <div class="fee-detail" id="sendDdpNote" style="color:#059669;"></div>
+      </div>
+
+      <div class="form-group">
+        <label>
+          <span data-i18n="f.shipPerPiece">改用「每件固定運費」</span>
+          <button class="tip" type="button" data-tip-i18n="tip.shipPerPiece">?</button>
+        </label>
+        <div class="toggle-row">
+          <button class="active" id="btn-shipmode-rate"  type="button" data-i18n="f.shipmode.rate">按重量計費</button>
+          <button id="btn-shipmode-piece" type="button" data-i18n="f.shipmode.piece">每件固定金額</button>
+        </div>
+        <div class="input-row" id="shipPerPieceGroup">
+          <input type="number" id="shipPerPiece" value="2.00" step="0.1" min="0" max="10000">
+          <span class="unit">USD/pcs</span>
+        </div>
+        <div class="hint" data-i18n="f.shipPerPiece.hint">例：一箱 200 件空運 $400 → 每件 $2.00</div>
+      </div>
+
+      <div class="hint" id="shipHintArea"></div>
+
+      <hr class="section-divider">
+
+      <div class="form-group">
+        <label>
+          <span data-i18n="f.fbaFee">FBA 配送費 (每件)</span>
+          <span class="auto-badge" data-i18n="badge.auto">自動估算</span>
+          <button class="tip" type="button" data-tip-i18n="tip.fbaFee">?</button>
+        </label>
+        <div class="input-row">
+          <input type="number" id="fbaFee" value="3.43" step="0.01" min="0" max="10000">
+          <span class="unit">USD</span>
+        </div>
+        <div class="fee-detail" id="fbaTierNote"></div>
+        <div class="fee-detail" id="fbaTierOptimize" style="color:#059669;"></div>
+      </div>
+
+      <div class="form-group">
+        <label>
+          <span data-i18n="f.season">倉儲季節</span>
+          <button class="tip" type="button" data-tip-i18n="tip.season">?</button>
+        </label>
+        <div class="toggle-row">
+          <button class="active" id="btn-offpeak" type="button"><span data-i18n="f.season.off">淡季 1-9月</span> ($<span id="rateOffpeak">0.78</span>/cuft)</button>
+          <button id="btn-peak" type="button"><span data-i18n="f.season.peak">旺季 10-12月</span> ($<span id="ratePeak">2.40</span>/cuft)</button>
+        </div>
+      </div>
+
+      <div class="form-group">
+        <label>
+          <span data-i18n="f.storageFee">FBA 月倉儲費 (每件)</span>
+          <span class="auto-badge" data-i18n="badge.auto">自動估算</span>
+        </label>
+        <div class="input-row">
+          <input type="number" id="storageFee" value="0.02" step="0.01" min="0" max="10000">
+          <span class="unit">USD</span>
+        </div>
+        <div class="fee-detail" id="storageNote"></div>
+      </div>
+
+      <div class="form-group">
+        <label>
+          <span data-i18n="f.storageMonths">預估倉儲月數</span>
+          <button class="tip" type="button" data-tip-i18n="tip.storageMonths">?</button>
+        </label>
+        <div class="input-row">
+          <input type="number" id="storageMonths" value="3" step="1" min="0" max="24">
+          <span class="unit" data-i18n="unit.months">個月</span>
+        </div>
+        <div class="hint" data-i18n="f.storageMonths.hint">倉儲費 = 月倉儲費 × 月數。超過 6 個月會有超齡附加費風險。</div>
+      </div>
+
+      <div class="form-group">
+        <label>
+          <span data-i18n="f.inboundFee">Inbound Placement 費 (每件)</span>
+          <span class="auto-badge" data-i18n="badge.auto">自動估算</span>
+          <button class="tip" type="button" data-tip-i18n="tip.inboundFee">?</button>
+        </label>
+        <div class="input-row">
+          <input type="number" id="inboundFee" value="0.15" step="0.01" min="0" max="10000">
+          <span class="unit">USD</span>
+        </div>
+      </div>
+    </div>
+
+    <!-- ④ FBM 自配送 -->
+    <div class="card gate g-fbm">
+      <div class="card-title" data-i18n="card.logisticsFbm">🚚 物流運輸 (FBM 自配送)</div>
+
+      <div class="form-group">
+        <label><span data-i18n="f.fbmMethod">配送方式</span></label>
+        <select id="fbmMethod"></select>
+      </div>
+
+      <div class="form-group">
+        <label>
+          <span data-i18n="f.fbmShip">每件國際配送費</span>
+          <span class="auto-badge" data-i18n="badge.autoByMethod">依方式估算</span>
+          <button class="tip" type="button" data-tip-i18n="tip.fbmShip">?</button>
+        </label>
+        <div class="input-row">
+          <input type="number" id="fbmShipCost" value="12.00" step="0.5" min="0" max="10000">
+          <span class="unit">USD</span>
+        </div>
+        <div class="fee-detail" id="fbmShipNote"></div>
+      </div>
+
+      <div class="form-group">
+        <label>
+          <span data-i18n="f.fbmDuty">美國進口關稅 (每件估算)</span>
+          <button class="tip" type="button" data-tip-i18n="tip.fbmDuty">?</button>
+        </label>
+        <div class="input-row">
+          <input type="number" id="fbmDuty" value="0" step="0.1" min="0" max="10000">
+          <span class="unit">USD</span>
+        </div>
+        <div class="hint" data-i18n="f.fbmDuty.hint">DDP 方式通常已含關稅（填 0）；海外倉需另估</div>
+      </div>
+
+      <div class="form-group">
+        <label><span data-i18n="f.fbmPack">包裝材料費 (每件)</span></label>
+        <div class="input-row">
+          <input type="number" id="fbmPackCost" value="0.50" step="0.1" min="0" max="10000">
+          <span class="unit">USD</span>
+        </div>
+      </div>
+
+      <div class="form-group">
+        <label>
+          <span data-i18n="f.fbmCs">客服 &amp; 退貨處理費 (每件分攤)</span>
+          <button class="tip" type="button" data-tip-i18n="tip.fbmCs">?</button>
+        </label>
+        <div class="input-row">
+          <input type="number" id="fbmCsFee" value="1.00" step="0.1" min="0" max="10000">
+          <span class="unit">USD</span>
+        </div>
+      </div>
+
+      <div class="promo-info-box">
+        <div class="info-title" data-i18n="fbm.info.title">📋 FBM 配送費估算說明</div>
+        <div style="font-size:0.72rem;line-height:1.6;">
+          <div style="margin-bottom:0.4rem;" data-i18n-html="fbm.info.express"></div>
+          <div style="margin-bottom:0.4rem;" data-i18n-html="fbm.info.warehouse"></div>
+          <table class="scenario-table" style="margin:0.4rem 0 0.3rem;">
+            <thead><tr>
+              <th data-i18n="fbm.tbl.method">配送方式</th>
+              <th data-i18n="fbm.tbl.cost">費用參考 (每件)</th>
+              <th data-i18n="fbm.tbl.transit">時效</th>
+            </tr></thead>
+            <tbody id="fbmRefTable"></tbody>
+          </table>
+          <div style="font-size:0.65rem;color:var(--text-light);" data-i18n="fbm.info.footnote"></div>
+        </div>
+      </div>
+
+      <div class="promo-info-box">
+        <div class="info-title" data-i18n="fbm.vs.title">💡 FBM vs FBA</div>
+        <span data-i18n="fbm.vs.body"></span>
+      </div>
+    </div>
+
+    <!-- ⑤ 台灣電商 → 美國 Amazon -->
+    <div class="card gate g-twm">
+      <div class="card-title" data-i18n="card.twMode">🇹🇼 台灣現有產品 → 美國 Amazon 額外成本</div>
+
+      <div class="form-group">
+        <label><span data-i18n="f.twPrice">台灣售價 (TWD)</span></label>
+        <div class="input-row">
+          <input type="number" id="twPrice" value="800" step="10" min="0" max="10000000">
+          <span class="unit">TWD</span>
+        </div>
+      </div>
+
+      <div class="form-group">
+        <label>
+          <span data-i18n="f.twExRate">匯率 (1 USD = ? TWD)</span>
+          <button class="tip" type="button" data-tip-i18n="tip.twExRate">?</button>
+        </label>
+        <div class="input-row">
+          <input type="number" id="twExRate" value="32.5" step="0.1" min="1" max="200">
+          <span class="unit">TWD/USD</span>
+        </div>
+      </div>
+
+      <div class="form-group">
+        <label><span data-i18n="f.twCost">產品成本 (TWD)</span></label>
+        <div class="input-row">
+          <input type="number" id="twCost" value="250" step="10" min="0" max="10000000">
+          <span class="unit">TWD</span>
+        </div>
+        <div class="hint" data-i18n="f.twCost.hint">工廠出廠價 + 包材（台幣）</div>
+      </div>
+
+      <div class="form-group">
+        <label><span data-i18n="f.category">商品品類</span></label>
+        <select id="twCategory"></select>
+      </div>
+
+      <div class="form-group">
+        <label><span data-i18n="f.twMonthlySales">預估月銷量（用來分攤帳戶月費）</span></label>
+        <div class="input-row">
+          <input type="number" id="twMonthlySales" value="200" step="10" min="1" max="1000000">
+          <span class="unit" data-i18n="unit.unitsMo">件/月</span>
+        </div>
+      </div>
+
+      <hr class="section-divider">
+
+      <div class="form-group">
+        <label><span data-i18n="f.weight">商品重量 (含包裝)</span></label>
+        <div class="input-row">
+          <input type="number" id="twWeight" value="500" step="10" min="0" max="500000">
+          <span class="unit">g</span>
+        </div>
+      </div>
+
+      <div class="form-group">
+        <label>
+          <span data-i18n="f.dims">商品尺寸 (含包裝)</span>
+          <button class="tip" type="button" data-tip-i18n="tip.twDims">?</button>
+        </label>
+        <div class="input-row">
+          <input type="number" id="twDimL" value="25" step="0.5" min="0" max="5000">
+          <span class="unit">×</span>
+          <input type="number" id="twDimW" value="15" step="0.5" min="0" max="5000">
+          <span class="unit">×</span>
+          <input type="number" id="twDimH" value="8" step="0.5" min="0" max="5000">
+          <span class="unit">cm</span>
+        </div>
+        <div class="fee-detail" id="twWeightNote"></div>
+      </div>
+
+      <hr class="section-divider">
+
+      <div class="form-group">
+        <label><span data-i18n="f.twFbmMethod">FBM 配送方式</span></label>
+        <select id="twFbmMethod"></select>
+      </div>
+
+      <div class="tw-highlight">
+        <div class="tw-label" data-i18n="tw.res.title">📊 額外成本估算結果</div>
+        <div class="tw-result-row"><span data-i18n="tw.res.twPrice">台灣售價</span><span class="tv" id="tw-r-twprice">-</span></div>
+        <div class="tw-result-row"><span data-i18n="tw.res.usdPrice">換算美金售價</span><span class="tv" id="tw-r-usdprice">-</span></div>
+        <div class="tw-result-row"><span data-i18n="tw.res.cogs">產品成本 (USD)</span><span class="tv" id="tw-r-cogs">-</span></div>
+        <hr style="border:none;border-top:1px dashed #93c5fd;margin:0.3rem 0;">
+        <div class="tw-label" style="margin-top:0.3rem;" data-i18n="tw.res.extraTitle">Amazon 額外成本</div>
+        <div class="tw-result-row"><span data-i18n="tw.res.referral">銷售佣金</span><span class="tv" id="tw-r-referral">-</span></div>
+        <div class="tw-result-row"><span data-i18n="tw.res.account">帳戶月費分攤</span><span class="tv" id="tw-r-account">-</span></div>
+        <div class="tw-result-row"><span data-i18n="tw.res.ship">FBM 配送費</span><span class="tv" id="tw-r-ship">-</span></div>
+        <div class="tw-result-row"><span data-i18n="tw.res.duty">進口關稅</span><span class="tv" id="tw-r-duty">-</span></div>
+        <div class="tw-result-row"><span data-i18n="tw.res.misc">包裝 + 客服退貨</span><span class="tv" id="tw-r-misc">-</span></div>
+        <div class="tw-result-row" style="font-weight:700;border-top:1px solid #93c5fd;padding-top:0.4rem;"><span data-i18n="tw.res.extraTotal">Amazon 額外成本合計</span><span class="tv" id="tw-r-extra-total" style="color:#dc2626;">-</span></div>
+        <div class="tw-result-row" style="font-weight:700;"><span data-i18n="tw.res.extraPct">額外成本佔售價比例</span><span class="tv" id="tw-r-extra-pct" style="color:#dc2626;">-</span></div>
+        <hr style="border:none;border-top:1px dashed #93c5fd;margin:0.3rem 0;">
+        <div class="tw-result-row" style="font-weight:700;"><span data-i18n="tw.res.profitUsd">淨利潤 (USD)</span><span class="tv" id="tw-r-profit">-</span></div>
+        <div class="tw-result-row" style="font-weight:700;"><span data-i18n="tw.res.profitTwd">淨利潤 (TWD)</span><span class="tv" id="tw-r-profit-twd">-</span></div>
+        <div class="tw-result-row"><span data-i18n="tw.res.margin">利潤率</span><span class="tv" id="tw-r-margin">-</span></div>
+        <hr style="border:none;border-top:1px dashed #93c5fd;margin:0.3rem 0;">
+        <div class="tw-label" style="margin-top:0.3rem;" data-i18n="tw.res.sugTitle">💡 建議美金售價（維持台灣利潤率）</div>
+        <div class="tw-result-row"><span data-i18n="tw.res.twMargin">台灣利潤率</span><span class="tv" id="tw-r-tw-margin">-</span></div>
+        <div class="tw-result-row" style="font-size:1rem;font-weight:700;"><span data-i18n="tw.res.suggested">建議美金售價</span><span class="tv" id="tw-r-suggested" style="color:#059669;font-size:1.1rem;">-</span></div>
+        <div id="twSuggestNote" class="savings-note"></div>
+        <div id="twFbmAdvice" class="advice-box" style="margin-top:0.5rem;"></div>
+      </div>
+
+      <div class="promo-info-box">
+        <div class="info-title" data-i18n="tw.info.title">📋 計算說明</div>
+        <div style="font-size:0.72rem;line-height:1.6;" data-i18n-html="tw.info.body"></div>
+      </div>
+    </div>
+
+    <!-- ⑥ 營運成本 -->
+    <div class="card gate g-adv">
+      <div class="card-title" data-i18n="card.operating">📣 營運成本</div>
+
+      <div class="form-group">
+        <label>
+          <span data-i18n="f.tacos">廣告花費佔比 (TACoS)</span>
+          <button class="tip" type="button" data-tip-i18n="tip.tacos">?</button>
+        </label>
+        <div class="input-row">
+          <input type="number" id="tacos" value="12" step="0.5" min="0" max="100">
+          <span class="unit">%</span>
+        </div>
+      </div>
+
+      <div class="form-group">
+        <label>
+          <span data-i18n="f.vineFee">Vine 評論費用 (每件分攤)</span>
+          <button class="tip" type="button" data-tip-i18n="tip.vineFee">?</button>
+        </label>
+        <div class="input-row">
+          <input type="number" id="vineFee" value="0" step="0.01" min="0" max="10000">
+          <span class="unit">USD</span>
+        </div>
+        <div class="hint" data-i18n="f.vineFee.hint">例：Vine $200 / 首批 200 件 = $1.00/件</div>
+      </div>
+
+      <hr class="section-divider">
+
+      <div class="form-group">
+        <label>
+          <span data-i18n="f.returnRate">退貨率</span>
+          <button class="tip" type="button" data-tip-i18n="tip.returnRate">?</button>
+        </label>
+        <div class="input-row">
+          <input type="number" id="returnRate" value="3" step="0.5" min="0" max="100">
+          <span class="unit">%</span>
+        </div>
+      </div>
+
+      <div class="form-group">
+        <label>
+          <span data-i18n="f.refundAdmin">退款管理費</span>
+          <span class="auto-badge" data-i18n="badge.auto">自動估算</span>
+          <button class="tip" type="button" data-tip-i18n="tip.refundAdmin">?</button>
+        </label>
+        <div class="input-row">
+          <input type="number" id="refundAdminFee" value="0.30" step="0.01" min="0" max="10000">
+          <span class="unit" data-i18n="unit.usdPerReturn">USD/件退貨</span>
+        </div>
+        <div class="fee-detail" id="refundNote"></div>
+      </div>
+
+      <hr class="section-divider">
+
+      <div class="form-group">
+        <label>
+          <span data-i18n="f.importDuty">美國進口關稅 (每件估算)</span>
+          <button class="tip" type="button" data-tip-i18n="tip.importDuty">?</button>
+        </label>
+        <div class="input-row">
+          <input type="number" id="importDuty" value="0" step="0.1" min="0" max="10000">
+          <span class="unit">USD</span>
+        </div>
+        <div class="hint" data-i18n="f.importDuty.hint">依 HTS 編碼而定，一般消費品 0-25%。建議向報關行確認。</div>
+        <div class="fee-detail" id="dutyDdpNote" style="color:#059669;"></div>
+      </div>
+
+      <hr class="section-divider">
+
+      <div class="form-group">
+        <label><span data-i18n="f.otherFee">其他費用 (每件)</span></label>
+        <div class="input-row">
+          <input type="number" id="otherFee" value="0.50" step="0.1" min="0" max="10000">
+          <span class="unit">USD</span>
+        </div>
+        <div class="hint" data-i18n="f.otherFee.hint">驗貨、攝影分攤、保險、軟體工具等</div>
+      </div>
+    </div>
+
+    <!-- ⑦ 優惠方案 -->
+    <div class="card promo-card gate g-adv" id="promoCard">
+      <div class="card-title" data-i18n="card.incentives">🎁 新賣家優惠 &amp; FBA 新選品</div>
+
+      <div style="font-size:0.78rem;font-weight:600;margin-bottom:0.4rem;color:var(--accent);" data-i18n="promo.nsi.title">📦 新賣家入門大禮包 (New Seller Incentives)</div>
+
+      <div class="check-group">
+        <input type="checkbox" id="nsi-ads">
+        <div class="check-info">
+          <label class="check-label" for="nsi-ads"><span data-i18n="promo.nsiAds">Sponsored Products 廣告折價券</span> <span class="savings-badge" data-i18n="promo.nsiAds.badge">最高 $1,000</span></label>
+          <div class="check-desc" data-i18n-html="promo.nsiAds.desc"></div>
+          <div class="input-row" style="margin-top:0.35rem;">
+            <select id="nsiAdsAmount" style="width:auto;min-width:190px;font-size:0.78rem;"></select>
+          </div>
+        </div>
+      </div>
+
+      <div class="check-group">
+        <input type="checkbox" id="nsi-coupon">
+        <div class="check-info">
+          <label class="check-label" for="nsi-coupon"><span data-i18n="promo.nsiCoupon">$50 Amazon Coupon 折價券額度</span></label>
+          <div class="check-desc" data-i18n="promo.nsiCoupon.desc"></div>
+        </div>
+      </div>
+
+      <div class="check-group">
+        <input type="checkbox" id="nsi-vine">
+        <div class="check-info">
+          <label class="check-label" for="nsi-vine"><span data-i18n="promo.nsiVine">$200 Vine 評論計畫額度</span></label>
+          <div class="check-desc" data-i18n="promo.nsiVine.desc"></div>
+        </div>
+      </div>
+
+      <div class="check-group">
+        <input type="checkbox" id="nsi-ship">
+        <div class="check-info">
+          <label class="check-label" for="nsi-ship"><span data-i18n="promo.nsiShip">FBA 入倉運費抵用金</span> <span class="savings-badge">$100~$200</span></label>
+          <div class="check-desc" data-i18n-html="promo.nsiShip.desc"></div>
+          <div class="input-row" style="margin-top:0.35rem;">
+            <select id="nsiShipAmount" style="width:auto;min-width:190px;font-size:0.78rem;"></select>
+          </div>
+        </div>
+      </div>
+
+      <hr class="section-divider">
+      <div style="font-size:0.78rem;font-weight:600;margin-bottom:0.4rem;color:var(--accent);" data-i18n="promo.fns.title">📦 FBA 物流新選品計畫 (FBA New Selection)</div>
+
+      <div class="check-group">
+        <input type="checkbox" id="fns-storage">
+        <div class="check-info">
+          <label class="check-label" for="fns-storage"><span data-i18n="promo.fnsStorage">免費倉儲 120 天</span> <span class="savings-badge" data-i18n="promo.fnsStorage.badge">免倉儲費</span></label>
+          <div class="check-desc" data-i18n="promo.fnsStorage.desc"></div>
+        </div>
+      </div>
+
+      <div class="check-group">
+        <input type="checkbox" id="fns-return">
+        <div class="check-info">
+          <label class="check-label" for="fns-return"><span data-i18n="promo.fnsReturn">免費退貨處理 (前 20 件)</span></label>
+          <div class="check-desc" data-i18n="promo.fnsReturn.desc"></div>
+        </div>
+      </div>
+
+      <div class="check-group">
+        <input type="checkbox" id="fns-rebate">
+        <div class="check-info">
+          <label class="check-label" for="fns-rebate"><span data-i18n="promo.fnsRebate">10% 銷售回饋 (Rebate)</span> <span class="savings-badge" data-i18n="promo.fnsRebate.badge">抵扣配送費</span></label>
+          <div class="check-desc" data-i18n="promo.fnsRebate.desc"></div>
+        </div>
+      </div>
+
+      <div class="check-group">
+        <input type="checkbox" id="fns-vine">
+        <div class="check-info">
+          <label class="check-label" for="fns-vine"><span data-i18n="promo.fnsVine">Vine 註冊費 75 折</span></label>
+          <div class="check-desc" data-i18n="promo.fnsVine.desc"></div>
+        </div>
+      </div>
+
+      <div class="check-group">
+        <input type="checkbox" id="fns-inbound">
+        <div class="check-info">
+          <label class="check-label" for="fns-inbound"><span data-i18n="promo.fnsInbound">免 Inbound Placement 費</span> <span class="savings-badge" data-i18n="promo.fnsInbound.badge">免入倉配置費</span></label>
+          <div class="check-desc" data-i18n="promo.fnsInbound.desc"></div>
+        </div>
+      </div>
+
+      <div class="savings-highlight" id="savingsSummary">
+        <div class="savings-title" data-i18n="promo.savings.title">✅ 已勾選優惠 — 每件預估節省</div>
+        <div id="savingsDetail"></div>
+        <div class="savings-note" id="savingsNote"></div>
+      </div>
+    </div>
+
+    <!-- ⑧ 結果 -->
+    <div class="card result-card">
+      <div class="card-title" data-i18n="card.result">📊 利潤分析</div>
+
+      <div class="result-row"><span class="label" data-i18n="r.price">售價</span><span class="value" id="r-price">-</span></div>
+
+      <div class="result-section-title" data-i18n="r.sec.account">— 開店 &amp; 產品 —</div>
+      <div class="result-row"><span class="label" data-i18n="r.cogs">產品成本 (COGS)</span><span class="result-val"><span class="value" id="r-cogs">-</span><span class="pct" id="r-cogs-pct"></span></span></div>
+      <div class="result-row gate g-adv"><span class="label" data-i18n="r.account">帳戶月費分攤</span><span class="result-val"><span class="value" id="r-account">-</span><span class="pct" id="r-account-pct"></span></span></div>
+
+      <div class="result-section-title" data-i18n="r.sec.referral">— 銷售佣金 —</div>
+      <div class="result-row"><span class="label"><span data-i18n="r.referral">銷售佣金</span> (<span id="r-ref-pct">15</span>%)</span><span class="result-val"><span class="value" id="r-referral">-</span><span class="pct" id="r-referral-cost-pct"></span></span></div>
+      <div class="result-row gate g-fba" id="r-brand-rebate-row"><span class="label" style="color:#34d399;">↳ <span data-i18n="r.brandRebate">品牌退傭</span> (<span id="r-rebate-pct">0</span>%)</span><span class="value" style="color:#34d399;" id="r-brand-rebate">-</span></div>
+
+      <div class="result-section-title gate g-fba" data-i18n="r.sec.fba">— 物流運輸 (FBA) —</div>
+      <div class="result-section-title gate g-fbm" data-i18n="r.sec.fbm">— 物流運輸 (FBM) —</div>
+      <div class="result-row gate g-fba"><span class="label" data-i18n="r.ship">頭程運費</span><span class="result-val"><span class="value" id="r-ship">-</span><span class="pct" id="r-ship-pct"></span></span></div>
+      <div class="result-row gate g-fba"><span class="label" data-i18n="r.fba">FBA 配送費</span><span class="result-val"><span class="value" id="r-fba">-</span><span class="pct" id="r-fba-pct"></span></span></div>
+      <div class="result-row gate g-fba"><span class="label"><span data-i18n="r.storage">FBA 倉儲費</span> (<span id="r-storage-months">3</span> <span data-i18n="unit.mo">個月</span>)</span><span class="result-val"><span class="value" id="r-storage">-</span><span class="pct" id="r-storage-pct"></span></span></div>
+      <div class="result-row gate g-fba"><span class="label">Inbound Placement</span><span class="result-val"><span class="value" id="r-inbound">-</span><span class="pct" id="r-inbound-pct"></span></span></div>
+      <div class="result-row gate g-fbm"><span class="label" data-i18n="r.fbmShip">FBM 配送費</span><span class="result-val"><span class="value" id="r-fbm-ship">-</span><span class="pct" id="r-fbm-ship-pct"></span></span></div>
+      <div class="result-row gate g-fbm"><span class="label" data-i18n="r.duty">進口關稅</span><span class="result-val"><span class="value" id="r-fbm-duty">-</span><span class="pct" id="r-fbm-duty-pct"></span></span></div>
+      <div class="result-row gate g-fbm"><span class="label" data-i18n="r.fbmPack">包裝材料</span><span class="result-val"><span class="value" id="r-fbm-pack">-</span><span class="pct" id="r-fbm-pack-pct"></span></span></div>
+      <div class="result-row gate g-fbm"><span class="label" data-i18n="r.fbmCs">客服 &amp; 退貨處理</span><span class="result-val"><span class="value" id="r-fbm-cs">-</span><span class="pct" id="r-fbm-cs-pct"></span></span></div>
+
+      <div class="result-section-title gate g-adv" data-i18n="r.sec.operating">— 營運成本 —</div>
+      <div class="result-row gate g-adv"><span class="label"><span data-i18n="r.ads">廣告</span> (TACoS <span id="r-tacos-pct">12</span>%)</span><span class="result-val"><span class="value" id="r-ads">-</span><span class="pct" id="r-ads-pct"></span></span></div>
+      <div class="result-row gate g-adv"><span class="label" data-i18n="r.vine">Vine 評論費</span><span class="result-val"><span class="value" id="r-vine">-</span><span class="pct" id="r-vine-pct"></span></span></div>
+      <div class="result-row gate g-adv"><span class="label"><span data-i18n="r.return">退貨損失</span> (<span id="r-ret-pct">3</span>%)</span><span class="result-val"><span class="value" id="r-return">-</span><span class="pct" id="r-return-cost-pct"></span></span></div>
+      <div class="result-row gate g-adv"><span class="label" data-i18n="r.refundAdmin">退款管理費</span><span class="result-val"><span class="value" id="r-refund-admin">-</span><span class="pct" id="r-refund-admin-pct"></span></span></div>
+      <div class="result-row gate g-adv"><span class="label" data-i18n="r.duty">進口關稅</span><span class="result-val"><span class="value" id="r-duty">-</span><span class="pct" id="r-duty-pct"></span></span></div>
+      <div class="result-row gate g-adv"><span class="label" data-i18n="r.other">其他費用</span><span class="result-val"><span class="value" id="r-other">-</span><span class="pct" id="r-other-pct"></span></span></div>
+      <div class="result-row gate g-adv" id="r-promo-row"><span class="label" style="color:#34d399;">🎁 <span data-i18n="r.promo">優惠折抵</span></span><span class="value" style="color:#34d399;" id="r-promo">-</span></div>
+
+      <div class="result-highlight">
+        <div class="sub" data-i18n="r.netProfit">單件淨利潤</div>
+        <div class="big-number" id="r-profit">-</div>
+        <div class="sub">
+          <span data-i18n="r.margin">利潤率</span> <span id="r-margin">-</span> ｜
+          <span data-i18n="r.totalCost">單件總成本</span> <span id="r-total-cost">-</span> ｜
+          ROI <span id="r-roi">-</span>
+        </div>
+      </div>
+
+      <div class="result-section-title" style="margin-top:1rem;" data-i18n="r.sec.monthly">— 月度預估 —</div>
+      <div class="result-row"><span class="label" data-i18n="r.mRev">月營收</span><span class="value" id="r-m-rev">-</span></div>
+      <div class="result-row"><span class="label" data-i18n="r.mProfit">月淨利潤 (USD)</span><span class="value" id="r-m-profit">-</span></div>
+
+      <div id="optimAdvice" style="margin-top:0.85rem;"></div>
+    </div>
+
+    <!-- ⑨ 成本結構圖 -->
+    <div class="card full-width">
+      <div class="card-title" data-i18n="card.breakdown">📈 成本結構分析</div>
+      <div class="breakdown-bar" id="costBar"></div>
+      <div class="legend" id="costLegend"></div>
+    </div>
+
+    <!-- ⑩ 優惠方案說明 -->
+    <div class="card full-width gate g-adv">
+      <div class="card-title" data-i18n="card.incentiveGuide">🎁 新賣家優惠方案說明</div>
+      <div class="grid" style="gap:1rem;">
+        <div>
+          <div style="font-size:0.8rem;font-weight:600;margin-bottom:0.4rem;color:var(--accent);" data-i18n="guide.nsi.title">新賣家入門大禮包</div>
+          <table class="scenario-table" style="margin-top:0;">
+            <thead><tr>
+              <th data-i18n="guide.col.item">優惠項目</th>
+              <th data-i18n="guide.col.value">價值</th>
+              <th data-i18n="guide.col.window">期限</th>
+            </tr></thead>
+            <tbody id="guideNsiTable"></tbody>
+          </table>
+          <div class="hint" style="margin-top:0.3rem;" data-i18n-html="guide.nsi.note"></div>
+        </div>
+        <div>
+          <div style="font-size:0.8rem;font-weight:600;margin-bottom:0.4rem;color:var(--accent);" data-i18n="guide.fns.title">FBA 物流新選品計畫</div>
+          <table class="scenario-table" style="margin-top:0;">
+            <thead><tr>
+              <th data-i18n="guide.col.item">優惠項目</th>
+              <th data-i18n="guide.col.content">內容</th>
+              <th data-i18n="guide.col.window">期限</th>
+            </tr></thead>
+            <tbody id="guideFnsTable"></tbody>
+          </table>
+          <div class="hint" style="margin-top:0.3rem;" data-i18n="guide.fns.note"></div>
+        </div>
+      </div>
+      <div class="promo-info-box">
+        <div class="info-title" data-i18n="guide.stack.title">💡 台灣賣家專屬：兩個方案可以疊加使用</div>
+        <span data-i18n-html="guide.stack.body"></span>
+      </div>
+    </div>
+
+    <!-- ⑪ 資料來源 -->
+    <div class="card full-width" id="sourcesCard" style="background:#f9fafb;">
+      <div class="card-title" data-i18n="card.sources">📚 資料來源與參考連結</div>
+      <table class="src-table">
+        <thead><tr>
+          <th data-i18n="src.col.item">費用項目</th>
+          <th data-i18n="src.col.source">資料來源</th>
+          <th data-i18n="src.col.retrieved">擷取時間</th>
+        </tr></thead>
+        <tbody id="sourcesBody"></tbody>
+      </table>
+      <div class="promo-info-box" data-i18n-html="src.warning"></div>
+      <div style="margin-top:0.5rem;font-size:0.72rem;color:var(--text-light);">
+        🔗 <a href="https://sellercentral.amazon.com/hz/fba/profitabilitycalculator/index" target="_blank" rel="noopener" style="color:var(--accent);" data-i18n="src.revenueCalc">Amazon Revenue Calculator — 官方利潤計算器，可輸入 ASIN 查詢實際 FBA 費用</a>
+      </div>
+    </div>
+
+    <!-- ⑫ 免責聲明 -->
+    <div class="full-width">
+      <div class="disclaimer">
+        <div class="dis-title" data-i18n="dis.title">⚖️ 免責聲明</div>
+        <div data-i18n-html="dis.body"></div>
+      </div>
+    </div>
+
+  </div>
+</div>
+
+<footer>
+  <p data-i18n="foot.warning">⚠️ 本工具僅供參考估算，實際費用以 Amazon Seller Central 為準。</p>
+  <p data-i18n-html="foot.credit"></p>
+</footer>
+
+<div class="toast" id="toast"></div>
+
+<script src="rates.js"></script>
+<script src="app.js"></script>
+</body>
+</html>
