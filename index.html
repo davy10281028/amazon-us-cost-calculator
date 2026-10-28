@@ -268,9 +268,10 @@
           <button class="tip" type="button" data-tip-i18n="tip.inboundFee">?</button>
         </label>
         <div class="input-row">
-          <input type="number" id="inboundFee" value="0.15" step="0.01" min="0" max="10000">
+          <input type="number" id="inboundFee" value="0.27" step="0.01" min="0" max="10000">
           <span class="unit">USD</span>
         </div>
+        <div class="fee-detail" id="inboundNote"></div>
       </div>
     </div>
 
@@ -584,13 +585,21 @@
         </div>
       </div>
 
+      <div class="check-group">
+        <input type="checkbox" id="nsi-placement">
+        <div class="check-info">
+          <label class="check-label" for="nsi-placement"><span data-i18n="promo.nsiPlacement">$400 Inbound Placement 抵用金</span> <span class="savings-badge" data-i18n="promo.nsiPlacement.badge">抵入倉配置費</span></label>
+          <div class="check-desc" data-i18n="promo.nsiPlacement.desc"></div>
+        </div>
+      </div>
+
       <hr class="section-divider">
-      <div style="font-size:0.78rem;font-weight:600;margin-bottom:0.4rem;color:var(--accent);" data-i18n="promo.fns.title">📦 FBA 物流新選品計畫 (FBA New Selection)</div>
+      <div style="font-size:0.78rem;font-weight:600;margin-bottom:0.4rem;color:var(--accent);" data-i18n="promo.fns.title">📦 FBA 新選品計畫 2026 (New Selection Program)</div>
 
       <div class="check-group">
         <input type="checkbox" id="fns-storage">
         <div class="check-info">
-          <label class="check-label" for="fns-storage"><span data-i18n="promo.fnsStorage">免費倉儲 120 天</span> <span class="savings-badge" data-i18n="promo.fnsStorage.badge">免倉儲費</span></label>
+          <label class="check-label" for="fns-storage"><span data-i18n="promo.fnsStorage">免倉儲費 (前 200 件)</span> <span class="savings-badge" data-i18n="promo.fnsStorage.badge">免倉儲費</span></label>
           <div class="check-desc" data-i18n="promo.fnsStorage.desc"></div>
         </div>
       </div>
@@ -598,7 +607,7 @@
       <div class="check-group">
         <input type="checkbox" id="fns-return">
         <div class="check-info">
-          <label class="check-label" for="fns-return"><span data-i18n="promo.fnsReturn">免費退貨處理 (前 20 件)</span></label>
+          <label class="check-label" for="fns-return"><span data-i18n="promo.fnsReturn">免退貨處理 (前 200 件)</span></label>
           <div class="check-desc" data-i18n="promo.fnsReturn.desc"></div>
         </div>
       </div>
@@ -606,7 +615,7 @@
       <div class="check-group">
         <input type="checkbox" id="fns-rebate">
         <div class="check-info">
-          <label class="check-label" for="fns-rebate"><span data-i18n="promo.fnsRebate">10% 銷售回饋 (Rebate)</span> <span class="savings-badge" data-i18n="promo.fnsRebate.badge">抵扣配送費</span></label>
+          <label class="check-label" for="fns-rebate"><span data-i18n="promo.fnsRebate">佣金折扣 10% / 5%</span> <span class="savings-badge" data-i18n="promo.fnsRebate.badge">降低銷售佣金</span></label>
           <div class="check-desc" data-i18n="promo.fnsRebate.desc"></div>
         </div>
       </div>
@@ -614,16 +623,8 @@
       <div class="check-group">
         <input type="checkbox" id="fns-vine">
         <div class="check-info">
-          <label class="check-label" for="fns-vine"><span data-i18n="promo.fnsVine">Vine 註冊費 75 折</span></label>
+          <label class="check-label" for="fns-vine"><span data-i18n="promo.fnsVine">$75 Vine + $50 Coupon 額度</span></label>
           <div class="check-desc" data-i18n="promo.fnsVine.desc"></div>
-        </div>
-      </div>
-
-      <div class="check-group">
-        <input type="checkbox" id="fns-inbound">
-        <div class="check-info">
-          <label class="check-label" for="fns-inbound"><span data-i18n="promo.fnsInbound">免 Inbound Placement 費</span> <span class="savings-badge" data-i18n="promo.fnsInbound.badge">免入倉配置費</span></label>
-          <div class="check-desc" data-i18n="promo.fnsInbound.desc"></div>
         </div>
       </div>
 
@@ -709,7 +710,7 @@
           <div class="hint" style="margin-top:0.3rem;" data-i18n-html="guide.nsi.note"></div>
         </div>
         <div>
-          <div style="font-size:0.8rem;font-weight:600;margin-bottom:0.4rem;color:var(--accent);" data-i18n="guide.fns.title">FBA 物流新選品計畫</div>
+          <div style="font-size:0.8rem;font-weight:600;margin-bottom:0.4rem;color:var(--accent);" data-i18n="guide.fns.title">FBA 新選品計畫 2026</div>
           <table class="scenario-table" style="margin-top:0;">
             <thead><tr>
               <th data-i18n="guide.col.item">優惠項目</th>

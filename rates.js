@@ -22,15 +22,15 @@ window.AMZ_RATES = {
     // ⚠️ 只有在改動資料「結構」時才要 +1（例如把 storage 拆成 standard/oversize、
     //    把 fba 改成四張費率卡）。單純改數字不用動。
     //    改了這裡就要同步改 app.js 最上面的 REQUIRED_RATES_SCHEMA。
-    schema: 2,
+    schema: 3,
 
-    version: '2026.08',           // 費率基準期（不是程式版本）
-    lastUpdated: '2026-08-27',    // 最舊的一項為準（目前 SEND／貨代仍是 2026-04）
-    nextReviewDue: '2026-10-15',  // 配送費旺季生效日；過期 UI 會轉紅色警示
+    version: '2026.10',           // 費率基準期（不是程式版本）
+    lastUpdated: '2026-10-28',    // 最舊的一項為準（目前 SEND／貨代仍是 2026-04）
+    nextReviewDue: '2027-01-15',  // 配送費回到非旺季、2027 新費率通常同日生效；過期 UI 會轉紅色警示
     staleAfterDays: 120,          // 超過這個天數沒更新就顯示警示
     note: {
-      zh: '2026-08-27 經 Lens 讀取 Seller Central 官方表格全面更新 FBA 配送費（含服裝／非服裝、旺季／非旺季四張費率卡），並修正品類佣金、最低佣金 $0.30、大件倉儲費。⚠️ 配送費旺季 2026-10-15 生效，屆時請把季節切到「旺季」。SEND 與貨代費率仍為 2026-04 行情，需向服務商詢價。',
-      en: 'On 2026-08-27 the FBA fulfilment fees were fully refreshed from the official Seller Central tables via Lens (four rate cards: apparel/non-apparel x peak/non-peak), along with corrections to category referral fees, the $0.30 minimum referral fee and oversize storage. Peak fulfilment fees take effect 2026-10-15 — switch the season toggle to Peak then. SEND and forwarder rates are still the 2026-04 market estimates and need fresh quotes.'
+      zh: '2026-10-28 複核：FBA 配送費四張費率卡與官方表格逐格比對無誤；Inbound Placement 改為 2026-01-15 起的重量級距（Extra-Large 免收）；Small Bulky 尺寸上限修正為 37×28×20 in；FBA 新選品計畫改為 2026 新版（2026-07-30 起，限品牌商品）；新賣家大禮包加入 $400 Inbound Placement 抵用金。目前為配送費旺季（2026-10-15 ~ 2027-01-14）。SEND 與貨代費率仍為 2026-04 行情，需向服務商詢價。',
+      en: 'Re-checked 2026-10-28: all four FBA fulfilment rate cards match the official tables cell by cell; Inbound Placement now uses the weight bands in effect since 2026-01-15 (Extra-Large exempt); Small Bulky limits corrected to 37×28×20 in; FBA New Selection switched to the 2026 program (from 2026-07-30, branded ASINs only); the $400 Inbound Placement credit was added to New Seller Incentives. Peak fulfilment fees are in effect (2026-10-15 to 2027-01-14). SEND and forwarder rates are still 2026-04 market estimates and need fresh quotes.'
     }
   },
 
@@ -40,7 +40,7 @@ window.AMZ_RATES = {
   accountFee: {
     professional: 39.99,
     _source: 'https://gs.amazon.com.tw/pricing',
-    _verified: '2026-04'
+    _verified: '2026-10-28'
   },
 
   /* ---------------------------------------------------------------------------
@@ -53,7 +53,7 @@ window.AMZ_RATES = {
     // will be applied to fulfillment fees across FBA in the US and Canada...」
     // fba.rates 的表格數字均「不含」此附加費，需另外加上。
     _source: 'https://sellercentral.amazon.dev/help/hub/reference/external/GABBX6GZPA8MSZGW',
-    _verified: '2026-08-27'
+    _verified: '2026-10-28'
   },
 
   /* ---------------------------------------------------------------------------
@@ -122,7 +122,7 @@ window.AMZ_RATES = {
     pct: 20,
     cap: 5.00,
     _source: 'https://gs.amazon.com.tw/pricing',
-    _verified: '2026-04'
+    _verified: '2026-10-28'
   },
 
   /* ---------------------------------------------------------------------------
@@ -133,10 +133,11 @@ window.AMZ_RATES = {
     dimWeightMinSideIn: 2,   // Large Standard 以上，寬高低於 2 吋以 2 吋計
     smallStandard: { maxLongestIn: 15, maxMedianIn: 12, maxShortestIn: 0.75, maxUnitOz: 16 },
     largeStandard: { maxLongestIn: 18, maxMedianIn: 14, maxShortestIn: 8,    maxShipLb: 20 },
-    smallBulky:    { maxLongestIn: 26, maxMedianIn: 18, maxShortestIn: 14 },
-    bulky:         { maxLongestIn: 59, maxLengthGirthIn: 130, maxShipLb: 50 },
-    _source: 'https://sellercentral.amazon.com/help/hub/reference/external/GABBX6GZPA8MSZGW',
-    _verified: '2026-04'
+    // 2026-01-15 起原本單一的 Large Bulky 拆成 Small Bulky + Large Bulky，兩者都 ≤50 lb、長+圍 ≤130 in
+    smallBulky:    { maxLongestIn: 37, maxMedianIn: 28, maxShortestIn: 20 },
+    bulky:         { maxLongestIn: 59, maxMedianIn: 33, maxShortestIn: 33, maxLengthGirthIn: 130, maxShipLb: 50 },
+    _source: 'https://sellercentral.amazon.com/help/hub/reference/external/GG5KW835AHDJCH8W',
+    _verified: '2026-10-28'
   },
 
   /* ---------------------------------------------------------------------------
@@ -372,8 +373,8 @@ window.AMZ_RATES = {
     },
 
     _source: 'https://sellercentral.amazon.dev/help/hub/reference/external/GABBX6GZPA8MSZGW',
-    _sourceNote: '經 Lens (amazon.dev, Midway 認證) 讀取官方表格，非人工轉抄',
-    _verified: '2026-08-27'
+    _sourceNote: '經 Lens (amazon.dev, Midway 認證) 讀取官方表格，非人工轉抄；2026-10-28 以腳本逐格複核 108 列無差異',
+    _verified: '2026-10-28'
   },
 
   /* ---------------------------------------------------------------------------
@@ -382,7 +383,7 @@ window.AMZ_RATES = {
   storage: {
     // 標準尺寸 = Small/Large Standard；大件 = Small/Large Bulky、Extra Large
     standard: {
-      offpeak: 0.78,   // 1–9 月  ⚠️ 見下方 _conflict
+      offpeak: 0.78,   // 1–9 月
       peak: 2.40       // 10–12 月
     },
     oversize: {
@@ -392,32 +393,68 @@ window.AMZ_RATES = {
     cubicInchesPerCuFt: 1728,
     agedSurchargeFromDays: 181,
 
-    // 官方公開頁（gs.amazon.com.tw/pricing）列的標準尺寸淡季是 $0.87，
-    // 但原版 v1.1 從 2026-04 擷取的是 $0.78。旺季 $2.40 與大件 $0.56/$1.40
-    // 兩邊一致，只有這一格對不上。未經 Seller Central 確認前保留 $0.78 不動。
-    _conflict: {
-      field: 'standard.offpeak',
-      current: 0.78,
-      candidate: 0.87,
-      candidateSource: 'https://gs.amazon.com.tw/pricing（該頁其他內容為 2023/24 年份，可信度存疑）',
-      action: '需登入 Seller Central G200612770 確認'
-    },
-    _source: 'https://sellercentral.amazon.com/help/hub/reference/external/G200612770',
-    _source2: 'https://gs.amazon.com.tw/pricing（大件費率、181 天超齡門檻由此確認）',
-    _verified: '2026-04（標準淡季待複查）；大件費率 2026-08-27 由公開頁確認'
+    // gs.amazon.com.tw/pricing 列的標準尺寸淡季 $0.87 是 2024-04-01 以前的舊費率
+    // （同批改版降到 $0.78）。2026-10 Help Page 快照（G3EDYEF6KUCFQTNM / GJ9NNG7RK4TU6E3Z）確認 $0.78 為現行值。
+    _source: 'https://sellercentral.amazon.com/help/hub/reference/external/G3EDYEF6KUCFQTNM',
+    _source2: 'https://sellercentral.amazon.com/help/hub/reference/external/GJ9NNG7RK4TU6E3Z',
+    _verified: '2026-10-28'
   },
 
   /* ---------------------------------------------------------------------------
-   * Inbound Placement Service 費 (每件，依 size tier)
+   * Inbound Placement Service 費 (每件，依 size tier + 重量級距)
+   *
+   *   2026-01-15 起（當天或之後建立的 shipping plan）：
+   *   ・官方只公布「Minimal shipment splits」每個級距的區間（依入倉區域浮動，西岸較貴）
+   *     → 這裡存 min / max，估算時取兩者中位數（estimate: 'mid'）
+   *   ・自己拆成多批送到多個地點（Amazon-optimized splits）免費
+   *   ・Extra-Large 完全豁免
+   *   ・計費重量：Small standard 用實重；其餘取 max(實重, 體積重)
    * -------------------------------------------------------------------------*/
   inboundPlacement: {
-    smallStandard: 0.15,
-    largeStandard: 0.27,
-    smallBulky: 0.79,
-    largeBulky: 0.79,
-    extraLarge: 1.58,
-    _source: 'https://sellercentral.amazon.com/help/hub/reference/external/GC3Q44PBK8SQ2DEN',
-    _verified: '2026-04'
+    estimate: 'mid',   // 'min' | 'mid' | 'max'
+    smallStandard: {
+      basis: 'unitWeight',
+      bands: [
+        { maxLb: 0.5, min: 0.14, max: 0.32 },
+        { maxLb: 1,   min: 0.16, max: 0.32 }
+      ]
+    },
+    largeStandard: {
+      basis: 'shipWeight',
+      bands: [
+        { maxLb: 0.75, min: 0.20, max: 0.40 },
+        { maxLb: 1.5,  min: 0.24, max: 0.50 },
+        { maxLb: 3,    min: 0.34, max: 0.60 },
+        { maxLb: 5,    min: 0.38, max: 0.76 },
+        { maxLb: 7,    min: 0.40, max: 0.98 },
+        { maxLb: 10,   min: 0.42, max: 1.20 },
+        { maxLb: 15,   min: 0.44, max: 1.50 },
+        { maxLb: 20,   min: 0.55, max: 1.90 }
+      ]
+    },
+    smallBulky: {
+      basis: 'shipWeight',
+      bands: [
+        { maxLb: 5,  min: 1.10, max: 1.60 },
+        { maxLb: 12, min: 1.75, max: 2.40 },
+        { maxLb: 28, min: 2.74, max: 3.50 },
+        { maxLb: 42, min: 3.95, max: 4.95 },
+        { maxLb: 50, min: 4.80, max: 5.95 }
+      ]
+    },
+    largeBulky: {
+      basis: 'shipWeight',
+      bands: [
+        { maxLb: 5,  min: 1.30, max: 1.80 },
+        { maxLb: 12, min: 2.10, max: 2.90 },
+        { maxLb: 28, min: 3.40, max: 4.10 },
+        { maxLb: 42, min: 4.70, max: 5.60 },
+        { maxLb: 50, min: 5.50, max: 6.50 }
+      ]
+    },
+    extraLarge: 0,      // 豁免
+    _source: 'https://sellercentral.amazon.com/help/hub/reference/external/GC3Q44PBK8BXQW3Z',
+    _verified: '2026-10-28'
   },
 
   /* ---------------------------------------------------------------------------
@@ -548,20 +585,31 @@ window.AMZ_RATES = {
       couponCredit: 50,
       vineCredit: 200,
       inboundCredit: { domestic: 100, crossBorder: 200, default: 100 },
-      _source: 'https://gs.amazon.com.tw/new-seller-incentive',
-      _verified: '2026-04'
+      placementCredit: 400,   // 抵 Inbound Placement Service 費，入帳後一年到期
+      _source: 'https://sellercentral.amazon.com/help/hub/reference/external/GXMJ38VA95GUN5XU',
+      _source2: 'https://gs.amazon.com.tw/new-seller-incentive',
+      _verified: '2026-10-28'
     },
 
+    /* New Selection Program (2026) — 2026-07-30 起取代舊版 FBA New Selection
+     *   ・只限 branded new-to-FBA parent ASIN（過去 12 個月沒有任何賣家 FBA 出貨過）
+     *   ・首次 FBA 入倉起 windowDays 天內的前 maxUnits 件：
+     *       referral fee 前 100 件收 10%、後 100 件收 5%（或原費率取低）
+     *       免倉儲費、免 storage utilization surcharge、免 low-inventory-level fee、
+     *       免退貨處理、免 liquidation
+     *   ・上架後 60 天內可用：$75 Vine credits + $50 Coupon credits
+     *   ・與 NSI 重疊的項目（referral / Vine / Coupon credits）由 NSI 先消耗 */
     newSelection: {
-      freeStorageDays: 120,
-      freeStorageUnits: { standard: 100, oversize: 50 },
-      freeReturnsUnits: 20,
-      freeReturnsDays: 180,
-      rebatePct: 10,
-      vineDiscountPct: 25,
-      freeInboundUnits: 100,
-      _source: 'https://sell.amazon.com/blog/fba-new-selection-program',
-      _verified: '2026-04'
+      windowDays: 120,
+      maxUnits: 200,
+      referralDiscount: [ { units: 100, pct: 10 }, { units: 100, pct: 5 } ],
+      vineCredit: 75,
+      couponCredit: 50,
+      promoCreditDays: 60,
+      brandedOnly: true,
+      effectiveFrom: '2026-07-30',
+      _source: 'https://sellercentral.amazon.com/help/hub/reference/external/GB36EVK8V94P8J5D',
+      _verified: '2026-10-28'
     },
 
     brandBonus: {
@@ -589,26 +637,29 @@ window.AMZ_RATES = {
   sourceTable: [
     { item: { zh: 'FBA 配送費 (Fulfillment Fee)', en: 'FBA Fulfillment Fee' },
       links: [{ text: { zh: 'Seller Central GABBX6GZPA8MSZGW — 2026 US FBA 配送費調整', en: 'Seller Central GABBX6GZPA8MSZGW — 2026 US FBA fulfillment fee changes' }, url: 'https://sellercentral.amazon.com/help/hub/reference/external/GABBX6GZPA8MSZGW' }],
-      detail: { zh: '費率依售價分三檔（&lt;$10 / $10-$50 / &gt;$50），含 3.5% 燃油附加費', en: 'Three price bands (&lt;$10 / $10-$50 / &gt;$50), incl. 3.5% fuel surcharge' },
-      retrieved: '2026-04' },
+      detail: { zh: '費率依售價分三檔（&lt;$10 / $10-$50 / &gt;$50），另加 3.5% 燃油附加費；旺季 2026-10-15 ~ 2027-01-14', en: 'Three price bands (&lt;$10 / $10-$50 / &gt;$50), plus 3.5% fuel surcharge; peak 2026-10-15 to 2027-01-14' },
+      retrieved: '2026-10-28' },
     { item: { zh: 'FBA 倉儲費 (Storage Fee)', en: 'FBA Storage Fee' },
-      links: [{ text: { zh: 'Seller Central — 月度庫存倉儲費', en: 'Seller Central — Monthly inventory storage fees' }, url: 'https://sellercentral.amazon.com/help/hub/reference/external/G200612770' }],
-      detail: { zh: '淡季 $0.78/cuft (1-9月)、旺季 $2.40/cuft (10-12月)', en: 'Off-peak $0.78/cuft (Jan-Sep), peak $2.40/cuft (Oct-Dec)' },
-      retrieved: '2026-04' },
+      links: [{ text: { zh: 'Seller Central — 月度庫存倉儲費', en: 'Seller Central — Monthly inventory storage fees' }, url: 'https://sellercentral.amazon.com/help/hub/reference/external/G3EDYEF6KUCFQTNM' }],
+      detail: { zh: '標準尺寸淡季 $0.78 / 旺季 $2.40；大件淡季 $0.56 / 旺季 $1.40（per cuft，旺季 10-12 月）', en: 'Standard $0.78 off-peak / $2.40 peak; oversize $0.56 / $1.40 (per cuft, peak Oct-Dec)' },
+      retrieved: '2026-10-28' },
     { item: { zh: '銷售佣金 (Referral Fee)', en: 'Referral Fee' },
       links: [{ text: { zh: 'Amazon 全球開店費率頁', en: 'Amazon Global Selling pricing page' }, url: 'https://gs.amazon.com.tw/pricing' },
               { text: { zh: 'Seller Central 佣金費率表', en: 'Seller Central referral fee schedule' }, url: 'https://sellercentral.amazon.com/help/hub/reference/external/GTG4BAWSY39Z98EN' }],
       detail: { zh: '', en: '' }, retrieved: '2026-04' },
     { item: { zh: 'Inbound Placement 費', en: 'Inbound Placement Fee' },
-      links: [{ text: { zh: 'Seller Central Inbound Placement 說明', en: 'Seller Central Inbound Placement' }, url: 'https://sellercentral.amazon.com/help/hub/reference/external/GC3Q44PBK8SQ2DEN' }],
-      detail: { zh: '', en: '' }, retrieved: '2026-04' },
+      links: [{ text: { zh: 'Seller Central Inbound Placement 說明', en: 'Seller Central Inbound Placement' }, url: 'https://sellercentral.amazon.com/help/hub/reference/external/GC3Q44PBK8BXQW3Z' }],
+      detail: { zh: '2026-01-15 起依 size tier + 重量級距計費，官方公布區間，本工具取中位數；自行拆批送多地點免費；Extra-Large 豁免', en: 'Since 2026-01-15 priced by size tier + weight band; Amazon publishes a range and this tool uses the midpoint; free with Amazon-optimized splits; Extra-Large exempt' },
+      retrieved: '2026-10-28' },
     { item: { zh: '新賣家入門大禮包', en: 'New Seller Incentives' },
-      links: [{ text: { zh: 'Amazon 全球開店 新賣家入門大禮包', en: 'Amazon Global Selling New Seller Incentives' }, url: 'https://gs.amazon.com.tw/new-seller-incentive' }],
-      detail: { zh: '廣告折價券為階梯式：花費 $50→得 $50、$200→得 $200、$1K+→得 $1,000', en: 'Ads credit is tiered: spend $50→get $50, $200→get $200, $1K+→get $1,000' },
-      retrieved: '2026-04' },
-    { item: { zh: 'FBA 新選品計畫', en: 'FBA New Selection' },
-      links: [{ text: { zh: 'Amazon FBA 新選品計畫', en: 'Amazon FBA New Selection Program' }, url: 'https://sell.amazon.com/blog/fba-new-selection-program' }],
-      detail: { zh: '', en: '' }, retrieved: '2026-04' },
+      links: [{ text: { zh: 'Seller Central — New Seller Incentives', en: 'Seller Central — New Seller Incentives' }, url: 'https://sellercentral.amazon.com/help/hub/reference/external/GXMJ38VA95GUN5XU' },
+              { text: { zh: 'Amazon 全球開店 新賣家入門大禮包', en: 'Amazon Global Selling New Seller Incentives' }, url: 'https://gs.amazon.com.tw/new-seller-incentive' }],
+      detail: { zh: '廣告折價券為階梯式：花費 $50→得 $50、$200→得 $200、$1K+→得 $1,000；另有 $400 Inbound Placement 抵用金', en: 'Ads credit is tiered: spend $50→get $50, $200→get $200, $1K+→get $1,000; plus a $400 Inbound Placement credit' },
+      retrieved: '2026-10-28' },
+    { item: { zh: 'FBA 新選品計畫 (2026)', en: 'New Selection Program (2026)' },
+      links: [{ text: { zh: 'Seller Central — New Selection Program (2026)', en: 'Seller Central — New Selection Program (2026)' }, url: 'https://sellercentral.amazon.com/help/hub/reference/external/GB36EVK8V94P8J5D' }],
+      detail: { zh: '2026-07-30 起取代舊版，限品牌新品；首次入倉 120 天內前 200 件', en: 'Replaced the old program on 2026-07-30; branded new-to-FBA ASINs only; first 200 units within 120 days of first inbound' },
+      retrieved: '2026-10-28' },
     { item: { zh: '退款管理費', en: 'Refund Admin Fee' },
       links: [{ text: { zh: 'Amazon 全球開店費率頁', en: 'Amazon Global Selling pricing page' }, url: 'https://gs.amazon.com.tw/pricing' }],
       detail: { zh: '= min(佣金 × 20%, $5.00)', en: '= min(referral × 20%, $5.00)' }, retrieved: '2026-04' },

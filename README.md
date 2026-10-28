@@ -34,7 +34,7 @@ amazon-cost-calculator/
 ├── scripts/
 │   └── read-seller-central.py  # 用 Lens + Midway 讀需登入的官方費率頁
 ├── test/
-│   ├── engine.test.js      # 209 項斷言：官方範例驗算 + bug 迴歸 + 公式驗算 + 端到端
+│   ├── engine.test.js      # 233 項斷言：官方範例驗算 + bug 迴歸 + 公式驗算 + 端到端
 │   └── lint.js             # i18n / element id / 字典對齊靜態檢查
 ├── NOTICE.md               # 原作者標註
 └── README.md
@@ -126,7 +126,7 @@ Bulky/XL 的整磅取整級距，以及 XL 150+ lb 的實重例外。
 - **輸入範圍檢查**：超出 min/max 的欄位邊框轉紅
 - **模式切換改為純 CSS class 驅動**（原版混用 inline style 與 class，容易打架）
 - **台灣電商模式**：加上材積重計算、月銷量輸入、海外倉選項、無解時的說明文字
-- **測試**：209 項斷言（含 12 個官方費率範例驗算） + 靜態 lint；費率 parity 會依 `meta.version` 自動跳過，不會假失敗
+- **測試**：233 項斷言（含 12 個官方費率範例驗算） + 靜態 lint；費率 parity 會依 `meta.version` 自動跳過，不會假失敗
 
 ---
 

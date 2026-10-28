@@ -117,7 +117,9 @@ zh: {
   'tip.storageMonths': '商品從入倉到售出的平均存放月數。建議維持 2-3 個月庫存；超過 {days} 天會產生超齡庫存附加費。',
   'f.storageMonths.hint': '倉儲費 = 月倉儲費 × 月數。超過 6 個月會有超齡附加費風險。',
   'f.inboundFee': 'Inbound Placement 費 (每件)',
-  'tip.inboundFee': 'Amazon 將庫存分配到多個倉庫的費用，依 size tier 而異。選擇 Amazon 優化配置可降低此費用。',
+  'tip.inboundFee': '選「Minimal shipment splits」（送到最少的入倉點，由 Amazon 分配）時收取，依 size tier 與重量級距計費，且依入倉區域浮動（西岸較貴），官方只公布區間，這裡取中位數估算。<br>選「Amazon-optimized splits」自己拆批送到多個地點則免費。Extra-Large 豁免。',
+  'inbound.note': '官方區間 ${min} ~ ${max}，取中位數 ${fee}；自己拆批送多地點為 $0',
+  'inbound.exempt': 'Extra-Large 豁免 Inbound Placement 費',
 
   'f.fbmMethod': '配送方式',
   'f.fbmShip': '每件國際配送費',
@@ -184,26 +186,27 @@ zh: {
   'promo.nsiVine.desc': '品牌賣家限定。需在品牌註冊後 90 天內註冊 Vine，領取後一年內使用',
   'promo.nsiShip': 'FBA 入倉運費抵用金',
   'promo.nsiShip.desc': '境內發貨 $100（Amazon Partnered Carrier）；跨境發貨 $200（需使用 AGL 或 Amazon SEND）',
+  'promo.nsiPlacement': '$400 Inbound Placement 抵用金', 'promo.nsiPlacement.badge': '抵入倉配置費',
+  'promo.nsiPlacement.desc': '上架後 90 天內完成首次 FBA 入倉即可獲得，只能抵 Inbound Placement 費，入帳後一年到期（抵不完的部分不計入節省）',
   'promo.adsTier': '${amt}（花費 {range}）',
   'promo.shipDomestic': '$100（境內發貨 Partnered Carrier）',
   'promo.shipCross': '$200（跨境發貨 AGL / SEND）',
-  'promo.fns.title': '📦 FBA 物流新選品計畫 (FBA New Selection)',
-  'promo.fnsStorage': '免費倉儲 120 天', 'promo.fnsStorage.badge': '免倉儲費',
-  'promo.fnsStorage.desc': 'Standard 前 100 件 / Oversize 前 50 件，入倉後 120 天免月倉儲費',
-  'promo.fnsReturn': '免費退貨處理 (前 20 件)',
-  'promo.fnsReturn.desc': 'Standard 尺寸商品，入倉後 180 天內前 20 件退貨免處理費',
-  'promo.fnsRebate': '10% 銷售回饋 (Rebate)', 'promo.fnsRebate.badge': '抵扣配送費',
-  'promo.fnsRebate.desc': '新 ASIN 銷售額平均 10% 回饋，次月抵扣 FBA 配送費用',
-  'promo.fnsVine': 'Vine 註冊費 75 折',
-  'promo.fnsVine.desc': '每個 Parent ASIN 可享 Vine 註冊費 25% 折扣（依上方 Vine 費用計算）',
-  'promo.fnsInbound': '免 Inbound Placement 費', 'promo.fnsInbound.badge': '免入倉配置費',
-  'promo.fnsInbound.desc': '新 ASIN 前 100 件入倉免 Inbound Placement Service 費用',
+  'promo.fns.title': '📦 FBA 新選品計畫 2026 (New Selection Program)',
+  'promo.fnsStorage': '免倉儲費 (前 200 件)', 'promo.fnsStorage.badge': '免倉儲費',
+  'promo.fnsStorage.desc': '首次 FBA 入倉起 120 天內的前 200 件免月倉儲費（另免 storage utilization surcharge 與 low-inventory-level fee）',
+  'promo.fnsReturn': '免退貨處理 (前 200 件)',
+  'promo.fnsReturn.desc': '同一個 120 天 / 200 件窗口內免客戶退貨處理費與 liquidation 費',
+  'promo.fnsRebate': '佣金折扣 10% / 5%', 'promo.fnsRebate.badge': '降低銷售佣金',
+  'promo.fnsRebate.desc': '120 天內前 100 件佣金只收 10%、第 101-200 件收 5%（或原費率取低），依月銷量估算可用件數後攤提。若同時有新賣家大禮包，品牌退傭會先被使用',
+  'promo.fnsVine': '$75 Vine + $50 Coupon 額度',
+  'promo.fnsVine.desc': '上架後 60 天內可用；與新賣家大禮包的 Vine / Coupon 是不同額度，但大禮包會先被使用',
   'promo.savings.title': '✅ 已勾選優惠 — 每件預估節省',
 
   'sv.nsiAds': '廣告抵用金攤提', 'sv.nsiCoupon': 'Coupon 額度攤提', 'sv.nsiVine': 'Vine 額度攤提',
-  'sv.nsiShip': 'FBA 運費抵用金攤提', 'sv.fnsStorage': '免倉儲費 (120 天)',
-  'sv.fnsReturn': '免退貨處理費', 'sv.fnsRebate': '10% 銷售回饋', 'sv.fnsVine': 'Vine 註冊費 75 折',
-  'sv.fnsInbound': '免 Inbound Placement', 'sv.total': '每件合計節省',
+  'sv.nsiShip': 'FBA 運費抵用金攤提', 'sv.nsiPlacement': 'Inbound Placement 抵用金攤提',
+  'sv.fnsStorage': '免倉儲費 (120 天)',
+  'sv.fnsReturn': '免退貨處理費', 'sv.fnsRebate': '新選品佣金折扣攤提', 'sv.fnsVine': 'Vine + Coupon 額度攤提',
+  'sv.total': '每件合計節省',
   'sv.note': '★ 標記者為<b>一次性額度</b>，已按「{m} 個月 × 月銷 {n} 件」攤提。額度用完後單件成本會回升到未折抵水準，不要把它當成長期的成本結構。<br>其餘項目為新 ASIN 期間的方案優惠，也有件數上限（如免倉儲 Standard 前 100 件）。',
 
   'r.price': '售價', 'r.sec.account': '— 開店 & 產品 —', 'r.cogs': '產品成本 (COGS)',
@@ -247,10 +250,10 @@ zh: {
   'tier.smallBulky': 'Small Bulky', 'tier.largeBulky': 'Large Bulky', 'tier.extraLarge': 'Extra Large',
 
   'guide.nsi.title': '新賣家入門大禮包（最高 $50,000+）',
-  'guide.fns.title': 'FBA 物流新選品計畫',
+  'guide.fns.title': 'FBA 新選品計畫 2026',
   'guide.col.item': '優惠項目', 'guide.col.value': '價值', 'guide.col.window': '期限', 'guide.col.content': '內容',
   'guide.nsi.note': '需 Professional 帳戶 + 首次上架 90 天內完成 FBA 入倉<br>* 廣告折價券為階梯式：花費 $50→得 $50、$200→得 $200、$1K+→得 $1,000（需 2025/8/20 後首次建立廣告）<br>** 品牌退傭已整合至上方「銷售佣金」區塊，可獨立設定',
-  'guide.fns.note': '需 Professional 帳戶 + IPI ≥ 300 + 新 ASIN（從未入過 FBA 倉）',
+  'guide.fns.note': '2026-07-30 起取代舊版。需 Professional 帳戶 + 過去 6 個月 IPI 最高分 ≥ 300 + 品牌商品的新 Parent ASIN（過去 12 個月沒有任何賣家 FBA 出貨過）。非品牌商品不適用',
   'guide.stack.title': '💡 台灣賣家專屬：兩個方案可以疊加使用',
   'guide.stack.body': '新賣家大禮包 + FBA 新選品計畫可同時享有。Brand Bonus 會先適用，之後再適用 New Selection 回饋。建議在開帳後 90 天內完成 FBA 入倉、啟動廣告和 Vine，才能最大化所有優惠。<br>詳情：<a href="https://gs.amazon.com.tw/benefits" target="_blank" rel="noopener">Amazon 全球開店官方優惠頁</a>',
 
@@ -399,7 +402,9 @@ I18N.en = {
   'tip.storageMonths': 'Average months from inbound receipt to sale. Aim to hold 2-3 months of inventory; beyond {days} days an aged-inventory surcharge applies.',
   'f.storageMonths.hint': 'Storage = monthly fee × months. Beyond 6 months you risk the aged-inventory surcharge.',
   'f.inboundFee': 'Inbound Placement fee (per unit)',
-  'tip.inboundFee': 'The fee for Amazon distributing your inventory across multiple fulfilment centres; it varies by size tier. Choosing Amazon-optimised placement reduces it.',
+  'tip.inboundFee': 'Charged when you choose Minimal shipment splits (ship to the fewest inbound locations and let Amazon distribute). It depends on size tier and weight band and varies by inbound region (West is higher). Amazon publishes a range; this tool uses the midpoint.<br>Amazon-optimized splits, where you ship to several locations yourself, are free. Extra-Large is exempt.',
+  'inbound.note': 'Official range ${min} to ${max}, midpoint ${fee}; $0 if you split shipments yourself',
+  'inbound.exempt': 'Extra-Large is exempt from the Inbound Placement fee',
 
   'f.fbmMethod': 'Shipping method',
   'f.fbmShip': 'International shipping per unit',
@@ -466,26 +471,27 @@ I18N.en = {
   'promo.nsiVine.desc': 'Brand sellers only. Enrol in Vine within 90 days of Brand Registry; use within one year of receipt.',
   'promo.nsiShip': 'FBA inbound shipping credit',
   'promo.nsiShip.desc': '$100 for domestic inbound (Amazon Partnered Carrier); $200 for cross-border inbound (requires AGL or Amazon SEND)',
+  'promo.nsiPlacement': '$400 Inbound Placement credit', 'promo.nsiPlacement.badge': 'Offsets placement fee',
+  'promo.nsiPlacement.desc': 'Granted when your first FBA shipment is received within 90 days of listing. Only offsets the Inbound Placement fee and expires one year after it is issued (any unused part is not counted as savings)',
   'promo.adsTier': '${amt} (spend {range})',
   'promo.shipDomestic': '$100 (domestic, Partnered Carrier)',
   'promo.shipCross': '$200 (cross-border, AGL / SEND)',
-  'promo.fns.title': '📦 FBA New Selection Program',
-  'promo.fnsStorage': 'Free storage for 120 days', 'promo.fnsStorage.badge': 'No storage fee',
-  'promo.fnsStorage.desc': 'First 100 standard-size / 50 oversize units: no monthly storage fee for 120 days after inbound receipt',
-  'promo.fnsReturn': 'Free returns processing (first 20 units)',
-  'promo.fnsReturn.desc': 'Standard-size items: no returns processing fee on the first 20 returns within 180 days of inbound receipt',
-  'promo.fnsRebate': '10% sales rebate', 'promo.fnsRebate.badge': 'Offsets fulfilment fee',
-  'promo.fnsRebate.desc': 'Averages a 10% rebate on new-ASIN sales, credited against next month\'s FBA fulfilment fees',
-  'promo.fnsVine': '25% off Vine enrolment',
-  'promo.fnsVine.desc': '25% discount on the Vine enrolment fee per parent ASIN (calculated from the Vine cost above)',
-  'promo.fnsInbound': 'No Inbound Placement fee', 'promo.fnsInbound.badge': 'Placement fee waived',
-  'promo.fnsInbound.desc': 'First 100 units of a new ASIN are exempt from the Inbound Placement Service fee',
+  'promo.fns.title': '📦 New Selection Program (2026)',
+  'promo.fnsStorage': 'No storage fee (first 200 units)', 'promo.fnsStorage.badge': 'No storage fee',
+  'promo.fnsStorage.desc': 'First 200 units within 120 days of first FBA inbound: no monthly storage fee (also no storage utilization surcharge or low-inventory-level fee)',
+  'promo.fnsReturn': 'Free returns processing (first 200 units)',
+  'promo.fnsReturn.desc': 'Same 120-day / 200-unit window: no customer returns processing or liquidation fee',
+  'promo.fnsRebate': 'Referral fee discount 10% / 5%', 'promo.fnsRebate.badge': 'Lower referral fee',
+  'promo.fnsRebate.desc': 'Within 120 days, units 1-100 pay a 10% referral fee and units 101-200 pay 5% (or the standard rate if lower). Eligible units are estimated from monthly sales, then amortised. If you also have New Seller Incentives, the brand bonus is used first',
+  'promo.fnsVine': '$75 Vine + $50 Coupon credits',
+  'promo.fnsVine.desc': 'Usable within 60 days of listing; a separate pool from the New Seller Incentives Vine / Coupon credits, which are used first',
   'promo.savings.title': '✅ Selected incentives — estimated saving per unit',
 
   'sv.nsiAds': 'Ad credit amortised', 'sv.nsiCoupon': 'Coupon credit amortised', 'sv.nsiVine': 'Vine credit amortised',
-  'sv.nsiShip': 'Inbound freight credit amortised', 'sv.fnsStorage': 'Storage waived (120 days)',
-  'sv.fnsReturn': 'Returns processing waived', 'sv.fnsRebate': '10% sales rebate', 'sv.fnsVine': '25% off Vine enrolment',
-  'sv.fnsInbound': 'Inbound Placement waived', 'sv.total': 'Total saved per unit',
+  'sv.nsiShip': 'Inbound freight credit amortised', 'sv.nsiPlacement': 'Inbound Placement credit amortised',
+  'sv.fnsStorage': 'Storage waived (120 days)',
+  'sv.fnsReturn': 'Returns processing waived', 'sv.fnsRebate': 'New Selection referral discount amortised', 'sv.fnsVine': 'Vine + Coupon credits amortised',
+  'sv.total': 'Total saved per unit',
   'sv.note': '★ Marked items are <b>one-time credits</b>, amortised over "{m} months × {n} units/month". Once the credit is exhausted your unit cost returns to the undiscounted level — do not treat this as your long-run cost structure.<br>The remaining items are new-ASIN programme benefits and also have unit caps (e.g. free storage covers only the first 100 standard-size units).',
 
   'r.price': 'Price', 'r.sec.account': '— Account & product —', 'r.cogs': 'Product cost (COGS)',
@@ -529,10 +535,10 @@ I18N.en = {
   'tier.smallBulky': 'Small Bulky', 'tier.largeBulky': 'Large Bulky', 'tier.extraLarge': 'Extra Large',
 
   'guide.nsi.title': 'New Seller Incentives (up to $50,000+)',
-  'guide.fns.title': 'FBA New Selection Program',
+  'guide.fns.title': 'New Selection Program (2026)',
   'guide.col.item': 'Benefit', 'guide.col.value': 'Value', 'guide.col.window': 'Window', 'guide.col.content': 'Details',
   'guide.nsi.note': 'Requires a Professional account + FBA inbound completed within 90 days of your first listing<br>* The ad credit is tiered: spend $50→get $50, $200→get $200, $1K+→get $1,000 (first campaign must be created after 2025-08-20)<br>** The brand rebate is configured in the Referral Fee card above',
-  'guide.fns.note': 'Requires a Professional account + IPI ≥ 300 + a new ASIN (never previously sent to an FBA warehouse)',
+  'guide.fns.note': 'Replaced the old program on 2026-07-30. Requires a Professional account, a peak IPI of at least 300 over the past 6 months, and a branded new parent ASIN (no FBA shipments by any seller in the past 12 months). Non-branded products do not qualify',
   'guide.stack.title': '💡 For Taiwan sellers: the two programmes stack',
   'guide.stack.body': 'New Seller Incentives and the FBA New Selection Program can be used together. The Brand Bonus applies first, then New Selection rebates. Complete FBA inbound, launch advertising and enrol in Vine within 90 days of opening your account to maximise everything.<br>Details: <a href="https://gs.amazon.com.tw/benefits" target="_blank" rel="noopener">Amazon Global Selling incentives page</a>',
 
@@ -586,9 +592,10 @@ const Engine = (function () {
     const lengthGirth = maxSide + girth;
 
     const unitLb = unitOz / OZ_PER_LB;
-    const effW = Math.max(dimsIn.w, T.dimWeightMinSideIn);
-    const effH = Math.max(dimsIn.h, T.dimWeightMinSideIn);
-    const dimLb = (dimsIn.l * effW * effH) / T.dimWeightDivisor;
+    // 2 吋下限套在「寬、高」= 排序後較短的兩邊，不能依使用者輸入的欄位順序
+    const effW = Math.max(medSide, T.dimWeightMinSideIn);
+    const effH = Math.max(minSide, T.dimWeightMinSideIn);
+    const dimLb = (maxSide * effW * effH) / T.dimWeightDivisor;
     const shipLb = Math.max(unitLb, dimLb);
 
     const ss = T.smallStandard, ls = T.largeStandard, sb = T.smallBulky, bk = T.bulky;
@@ -600,7 +607,8 @@ const Engine = (function () {
     } else if (maxSide <= ls.maxLongestIn && medSide <= ls.maxMedianIn &&
                minSide <= ls.maxShortestIn && shipLb <= ls.maxShipLb) {
       tier = 'largeStandard';
-    } else if (lengthGirth <= bk.maxLengthGirthIn && maxSide <= bk.maxLongestIn && shipLb <= bk.maxShipLb) {
+    } else if (lengthGirth <= bk.maxLengthGirthIn && maxSide <= bk.maxLongestIn &&
+               medSide <= bk.maxMedianIn && minSide <= bk.maxShortestIn && shipLb <= bk.maxShipLb) {
       tier = (maxSide <= sb.maxLongestIn && medSide <= sb.maxMedianIn && minSide <= sb.maxShortestIn)
         ? 'smallBulky' : 'largeBulky';
     } else {
@@ -738,9 +746,47 @@ const Engine = (function () {
     return Math.min(ref * (R.refundAdmin.pct / 100), R.refundAdmin.cap);
   }
 
-  function inboundFee(tierKey, R) {
-    const v = R.inboundPlacement[tierKey];
-    return typeof v === 'number' ? v : R.inboundPlacement.extraLarge;
+  /**
+   * Inbound Placement Service 費（Minimal shipment splits 的估算值）
+   * @param {string} tierKey
+   * @param {{unitLb?:number, shipLb?:number}} [w] classifyTier 的結果；沒給就取最輕級距
+   * @returns {{fee:number, min:number, max:number, exempt:boolean}}
+   */
+  function inboundPlacement(tierKey, R, w) {
+    const P = R.inboundPlacement;
+    const cfg = P[tierKey];
+    if (!cfg || !cfg.bands) return { fee: 0, min: 0, max: 0, exempt: true };
+    const lb = !w ? 0 : (cfg.basis === 'unitWeight' ? w.unitLb : w.shipLb) || 0;
+    const b = pickBand(cfg.bands, lb, 'maxLb');
+    const fee = P.estimate === 'min' ? b.min : P.estimate === 'max' ? b.max : (b.min + b.max) / 2;
+    return { fee: round2(fee), min: b.min, max: b.max, exempt: false };
+  }
+
+  function inboundFee(tierKey, R, w) {
+    return inboundPlacement(tierKey, R, w).fee;
+  }
+
+  /** 依日期判斷 FBA 配送費是否在旺季視窗內（預設季節用） */
+  function seasonOn(dateStr, R) {
+    const w = R.fba.peakWindow;
+    return dateStr >= w.from && dateStr <= w.to ? 'peak' : 'offpeak';
+  }
+
+  /**
+   * New Selection Program (2026) 的 referral fee 折扣（整個窗口的總節省）
+   * 前 100 件收 10%、後 100 件收 5%（或原費率取低）；件數受 120 天窗口內的銷量限制。
+   */
+  function nspReferralSavings(price, referral, monthlySales, R) {
+    const ns = R.incentives.newSelection;
+    let units = Math.min(ns.maxUnits, monthlySales * ns.windowDays / 30);
+    let total = 0;
+    for (const tier of ns.referralDiscount) {
+      const n = Math.min(tier.units, units);
+      if (n <= 0) break;
+      total += n * Math.max(0, referral - price * tier.pct / 100);
+      units -= n;
+    }
+    return total;
   }
 
   /** SEND 費率 (USD/kg)，找不到服務回 null */
@@ -776,12 +822,15 @@ const Engine = (function () {
     if (p.nsiCoupon) add('sv.nsiCoupon', inc.nsi.couponCredit / spread, true);
     if (p.nsiVine)   add('sv.nsiVine',   inc.nsi.vineCredit / spread, true);
     if (p.nsiShip)   add('sv.nsiShip',   (p.nsiShipAmount || inc.nsi.inboundCredit.default) / spread, true);
+    // $400 只能抵 Inbound Placement 費，抵不完的部分不算節省
+    if (p.nsiPlacement) add('sv.nsiPlacement', Math.min(inc.nsi.placementCredit / spread, ctx.inboundFee), true);
 
     if (p.fnsStorage) add('sv.fnsStorage', ctx.storageTotal, false);
     if (p.fnsReturn)  add('sv.fnsReturn',  ctx.fbaFee * (input.returnRate / 100), false);
-    if (p.fnsRebate)  add('sv.fnsRebate',  Math.min(input.price * (inc.newSelection.rebatePct / 100), ctx.fbaFee), false);
-    if (p.fnsVine)    add('sv.fnsVine',    input.vineFee * (inc.newSelection.vineDiscountPct / 100), false);
-    if (p.fnsInbound) add('sv.fnsInbound', ctx.inboundFee, false);
+    if (p.fnsRebate)  add('sv.fnsRebate',
+      nspReferralSavings(input.price, ctx.referralCost, perMonth, R) / spread, true);
+    if (p.fnsVine)    add('sv.fnsVine',
+      (inc.newSelection.vineCredit + inc.newSelection.couponCredit) / spread, true);
 
     return { perUnit, oneTime, structural: perUnit - oneTime, details, months, perMonth };
   }
@@ -829,7 +878,7 @@ const Engine = (function () {
 
     const promo = !includeOps
       ? { perUnit: 0, oneTime: 0, structural: 0, details: [], months: R.incentives.amortizeMonths, perMonth: monthlySales }
-      : promoSavings(input, { storageTotal, fbaFee: fbaFeeVal, inboundFee: inboundFeeVal }, R);
+      : promoSavings(input, { storageTotal, fbaFee: fbaFeeVal, inboundFee: inboundFeeVal, referralCost }, R);
 
     const totalCost = input.cogs + shipCost + fbaFeeVal + storageTotal + inboundFeeVal
       + fbmShip + fbmDuty + fbmPack + fbmCs
@@ -902,7 +951,7 @@ const Engine = (function () {
     OZ_PER_G, IN_PER_CM, G_PER_LB, OZ_PER_LB,
     pickBand, priceBandOf, classifyTier, fbaFee, rateCard, lbIntervals,
     storageFee, storageClassOf,
-    referralFee, referralPctPart, effectiveReferralPct, refundAdminFee, inboundFee, sendRate, volumetricKg,
+    referralFee, referralPctPart, effectiveReferralPct, refundAdminFee, inboundFee, inboundPlacement, seasonOn, nspReferralSavings, sendRate, volumetricKg,
     promoSavings, computeAll, computeTw, round2
   };
 })();
@@ -917,7 +966,7 @@ if (typeof module !== 'undefined' && module.exports) module.exports = { Engine, 
  * 這支 app.js 需要的 rates.js 資料結構版本。
  * 必須與 rates.js 的 meta.schema 相同 —— 只有改動資料「結構」時才會變。
  */
-const REQUIRED_RATES_SCHEMA = 2;
+const REQUIRED_RATES_SCHEMA = 3;
 
 if (typeof document !== 'undefined') (function () {
 
@@ -1022,7 +1071,8 @@ const State = {
   origin: 'tw',
   weightUnit: 'g',
   dimUnit: 'cm',
-  season: 'offpeak',
+  // 預設依今天落在配送費旺季視窗與否決定（sv locale 會給 YYYY-MM-DD）
+  season: Engine.seasonOn(new Date().toLocaleDateString('sv'), R),
   useShipPerPiece: false,
   rebateLevel: 'off'
 };
@@ -1038,8 +1088,8 @@ const FIELD_IDS = [
   'twPrice', 'twExRate', 'twCost', 'twCategory', 'twMonthlySales',
   'twWeight', 'twDimL', 'twDimW', 'twDimH', 'twFbmMethod'
 ];
-const CHECK_IDS = ['nsi-ads', 'nsi-coupon', 'nsi-vine', 'nsi-ship',
-                   'fns-storage', 'fns-return', 'fns-rebate', 'fns-vine', 'fns-inbound'];
+const CHECK_IDS = ['nsi-ads', 'nsi-coupon', 'nsi-vine', 'nsi-ship', 'nsi-placement',
+                   'fns-storage', 'fns-return', 'fns-rebate', 'fns-vine'];
 const STATE_KEYS = ['lang', 'mode', 'origin', 'weightUnit', 'dimUnit', 'season', 'useShipPerPiece', 'rebateLevel'];
 
 /* ---- 小工具 --------------------------------------------------------- */
@@ -1144,8 +1194,9 @@ function collectInput() {
       nsiAds: checked('nsi-ads'), nsiAdsAmount: parseFloat($('nsiAdsAmount').value),
       nsiCoupon: checked('nsi-coupon'), nsiVine: checked('nsi-vine'),
       nsiShip: checked('nsi-ship'), nsiShipAmount: parseFloat($('nsiShipAmount').value),
+      nsiPlacement: checked('nsi-placement'),
       fnsStorage: checked('fns-storage'), fnsReturn: checked('fns-return'),
-      fnsRebate: checked('fns-rebate'), fnsVine: checked('fns-vine'), fnsInbound: checked('fns-inbound')
+      fnsRebate: checked('fns-rebate'), fnsVine: checked('fns-vine')
     }
   };
 }
@@ -1262,17 +1313,18 @@ function buildStaticTables() {
     [t('promo.nsiCoupon'), '$' + nsi.couponCredit, '90d'],
     [t('promo.nsiVine'), '$' + nsi.vineCredit, '90d'],
     [t('promo.nsiShip'), '$' + nsi.inboundCredit.domestic + '~$' + nsi.inboundCredit.crossBorder, '—'],
+    [t('promo.nsiPlacement'), '$' + nsi.placementCredit, '1y'],
     [t('f.brandRebate').replace(/^🏷️\s*/, '') + '**', '$' + bb.maxTotalUsd.toLocaleString('en-US'), bb.validMonths + ' ' + t('unit.months')]
   ];
   $('guideNsiTable').innerHTML = nsiRows.map(r =>
     `<tr><td>${esc(r[0])}</td><td>${esc(r[1])}</td><td>${esc(r[2])}</td></tr>`).join('');
 
+  const rd = fns.referralDiscount;
   const fnsRows = [
-    [t('promo.fnsStorage'), `Std ${fns.freeStorageUnits.standard} / OS ${fns.freeStorageUnits.oversize}`, fns.freeStorageDays + 'd'],
-    [t('promo.fnsReturn'), `${fns.freeReturnsUnits} pcs`, fns.freeReturnsDays + 'd'],
-    [t('promo.fnsRebate'), `${fns.rebatePct}%`, '—'],
-    [t('promo.fnsVine'), `-${fns.vineDiscountPct}%`, '—'],
-    [t('promo.fnsInbound'), `${fns.freeInboundUnits} pcs`, '—']
+    [t('promo.fnsRebate'), `${rd[0].pct}% / ${rd[1].pct}% (${rd[0].units} + ${rd[1].units} pcs)`, fns.windowDays + 'd'],
+    [t('promo.fnsStorage'), `${fns.maxUnits} pcs`, fns.windowDays + 'd'],
+    [t('promo.fnsReturn'), `${fns.maxUnits} pcs`, fns.windowDays + 'd'],
+    [t('promo.fnsVine'), `$${fns.vineCredit} + $${fns.couponCredit}`, fns.promoCreditDays + 'd']
   ];
   $('guideFnsTable').innerHTML = fnsRows.map(r =>
     `<tr><td>${esc(r[0])}</td><td>${esc(r[1])}</td><td>${esc(r[2])}</td></tr>`).join('');
@@ -1600,7 +1652,10 @@ function recalc() {
     cuft: stor.cuft.toFixed(3), rate: stor.rate.toFixed(2), fee: stor.fee.toFixed(2),
     cls: t('storage.cls.' + stor.storageClass)
   });
-  $('inboundFee').value = Engine.inboundFee(fbaInfo.tier, R);
+  const ipf = Engine.inboundPlacement(fbaInfo.tier, R, fbaInfo.cls);
+  $('inboundFee').value = ipf.fee;
+  $('inboundNote').textContent = ipf.exempt ? t('inbound.exempt')
+    : t('inbound.note', { min: ipf.min.toFixed(2), max: ipf.max.toFixed(2), fee: ipf.fee.toFixed(2) });
 
   /* --- 佣金 / 退款管理費 --- */
   const effPct = Engine.effectiveReferralPct(price, catKey, R);
@@ -2116,12 +2171,17 @@ function init() {
     $('monthlySales').value = R.twMode.defaultMonthlySales;
   }
 
+  // 本機存檔不還原季節：否則九月存的「非旺季」會一路沿用到旺季。分享連結則照原樣還原。
+  if (!fromUrl && stored) delete stored.season;
+
   // URL 優先於 localStorage（分享連結要能覆蓋收件人自己的存檔）
   if (!restore(fromUrl || stored)) {
     setShipMode('rate');
     setMode('basic');
     onShipMethodChange();
   }
+  $('btn-offpeak').classList.toggle('active', State.season === 'offpeak');
+  $('btn-peak').classList.toggle('active', State.season === 'peak');
   recalc();
 }
 

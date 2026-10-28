@@ -259,17 +259,58 @@ ok(`退款管理費有上限 $${R.refundAdmin.cap}`,
  * ===========================================================================*/
 console.log('\n── C. Bug 修復驗證 ──');
 
-// C1. 原版 estimateInboundFee 用 tier.includes('Small')，Small Bulky 會誤判成 $0.15
-ok('C1 Small Bulky 的 Inbound Placement 不再誤判為 Small Standard 的 $0.15',
-  Engine.inboundFee('smallBulky', R) === 0.79,
-  `got ${Engine.inboundFee('smallBulky', R)}`);
-ok('C1 Small Standard 仍為 $0.15', Engine.inboundFee('smallStandard', R) === 0.15);
-ok('C1 Large Standard 仍為 $0.27', Engine.inboundFee('largeStandard', R) === 0.27);
-ok('C1 Extra Large 仍為 $1.58', Engine.inboundFee('extraLarge', R) === 1.58);
-// 確認 Small Bulky 這個 tier 真的會被判出來（不然上面的修復沒意義）
-ok('C1 26x18x14 / 30lb 會被判為 Small Bulky',
-  Engine.classifyTier({ l: 26, w: 18, h: 14 }, 30 * 16, R).tier === 'smallBulky',
-  Engine.classifyTier({ l: 26, w: 18, h: 14 }, 30 * 16, R).tier);
+// C1. Inbound Placement：2026-01-15 起依 size tier + 重量級距，取官方區間中位數；XL 豁免
+//     （原版用 tier.includes('Small')，Small Bulky 會誤判成 Small Standard 的費率）
+near('C1 Small Standard 6 oz（≤8 oz 帶 $0.14-$0.32）= $0.23',
+  Engine.inboundFee('smallStandard', R, { unitLb: 6 / 16, shipLb: 6 / 16 }), 0.23);
+near('C1 Small Standard 12 oz（8+-16 oz 帶 $0.16-$0.32）= $0.24',
+  Engine.inboundFee('smallStandard', R, { unitLb: 0.75, shipLb: 0.75 }), 0.24);
+near('C1 Small Standard 看實重，不看體積重',
+  Engine.inboundFee('smallStandard', R, { unitLb: 0.3, shipLb: 0.9 }), 0.23);
+near('C1 Large Standard 6 lb（5+-7 lb 帶 $0.40-$0.98）= $0.69',
+  Engine.inboundFee('largeStandard', R, { unitLb: 6, shipLb: 6 }), 0.69);
+near('C1 Large Standard 剛好 3 lb 落在 1.5+-3 lb 帶 = $0.47',
+  Engine.inboundFee('largeStandard', R, { unitLb: 3, shipLb: 3 }), 0.47);
+near('C1 Small Bulky 10 lb（5+-12 lb 帶 $1.75-$2.40）= $2.08',
+  Engine.inboundFee('smallBulky', R, { unitLb: 10, shipLb: 10 }), 2.075, 0.006);
+near('C1 Large Bulky 30 lb（28+-42 lb 帶 $4.70-$5.60）= $5.15',
+  Engine.inboundFee('largeBulky', R, { unitLb: 30, shipLb: 30 }), 5.15);
+ok('C1 Extra Large 豁免 = $0', Engine.inboundFee('extraLarge', R, { unitLb: 60, shipLb: 60 }) === 0);
+ok('C1 Extra Large 標記為豁免', Engine.inboundPlacement('extraLarge', R).exempt === true);
+{
+  const ip = Engine.inboundPlacement('largeStandard', R, { unitLb: 1, shipLb: 1 });
+  ok('C1 回傳官方區間 min / max（12+ oz-1.5 lb 帶 $0.24-$0.50）', ip.min === 0.24 && ip.max === 0.50,
+    `min=${ip.min} max=${ip.max}`);
+}
+
+// C1b. 2026 尺寸分級：Small Bulky 上限 37 x 28 x 20 in；Large Bulky 中邊 / 短邊上限 33 in
+ok('C1b 26x18x14 / 30lb 判為 Small Bulky',
+  Engine.classifyTier({ l: 26, w: 18, h: 14 }, 30 * 16, R).tier === 'smallBulky');
+ok('C1b 36x12x8 / 10lb 判為 Small Bulky（舊版上限 26x18x14 會誤判成 Large Bulky）',
+  Engine.classifyTier({ l: 36, w: 12, h: 8 }, 10 * 16, R).tier === 'smallBulky',
+  Engine.classifyTier({ l: 36, w: 12, h: 8 }, 10 * 16, R).tier);
+ok('C1b 45x12x8 / 10lb 長邊超過 37 in → Large Bulky',
+  Engine.classifyTier({ l: 45, w: 12, h: 8 }, 10 * 16, R).tier === 'largeBulky');
+{
+  // 40 x 34 x 6：長+圍 = 40 + 2*(34+6) = 120 ≤ 130，長邊 40 ≤ 59，只有中邊 34 > 33
+  const c = Engine.classifyTier({ l: 40, w: 34, h: 6 }, 20 * 16, R);
+  ok('C1b 40x34x6 只有中邊超過 33 in → Extra Large', c.tier === 'extraLarge', c.tier);
+}
+// 官方 worked example：40 x 1 x 25 in、4.5 lb 白板，套 2 in 下限後體積重 14.4 lb
+// （該頁說它 2026 年是 Small Bulky，但 40 in 超過同頁寫的 37 in 上限 —— 官方自相矛盾，
+//   這裡只驗體積重，tier 依明文上限判定。見 docs/UPDATING-RATES.md §2）
+{
+  const c = Engine.classifyTier({ l: 40, w: 1, h: 25 }, 4.5 * 16, R);
+  near('C1b 官方白板範例體積重 = 14.4 lb', c.dimLb, 14.39, 0.01);
+}
+// 2 吋下限套在排序後較短的兩邊，與輸入順序無關
+{
+  const a = Engine.fbaFee(5.4, { l: 13, w: 9, h: 0.85 }, 25, R, { apparel: true });
+  const b = Engine.fbaFee(5.4, { l: 0.85, w: 9, h: 13 }, 25, R, { apparel: true });
+  const c = Engine.fbaFee(5.4, { l: 9, w: 0.85, h: 13 }, 25, R, { apparel: true });
+  ok('C1b 尺寸輸入順序不影響 FBA 配送費', a.fee === b.fee && b.fee === c.fee,
+    `${a.fee} / ${b.fee} / ${c.fee}`);
+}
 
 // C2. 售價 0 時不能產生 NaN
 const zeroPct = Engine.effectiveReferralPct(0, 'home', R);
@@ -302,15 +343,54 @@ const promoIn = {
   tacos: 12, vineFee: 1.00, returnRate: 3, refundAdminFee: 0.78, importDuty: 0, otherFee: 0.5,
   promos: { nsiAds: true, nsiAdsAmount: 200, nsiCoupon: true, fnsStorage: true, fnsVine: true }
 };
+const spread = promoIn.monthlySales * R.incentives.amortizeMonths;
 const pr = Engine.computeAll(promoIn, R);
 ok('C4 一次性額度有被單獨累計 (oneTime > 0)', pr.promo.oneTime > 0);
 ok('C4 結構性優惠也有被單獨累計 (structural > 0)', pr.promo.structural > 0);
 near('C4 oneTime + structural = perUnit', pr.promo.oneTime + pr.promo.structural, pr.promo.perUnit, 1e-9);
 ok('C4 扣掉一次性額度後的利潤較低', pr.profitExOneTime < pr.profit);
 near('C4 profitExOneTime = profit - oneTime', pr.profitExOneTime, pr.profit - pr.promo.oneTime, 1e-9);
-// 原版 fns-vine 是寫死 0.05；現在應為 Vine 費用 × 25%
-near('C4 Vine 75 折 = Vine 費用 $1.00 × 25% = $0.25',
-  pr.promo.details.find(d => d.key === 'sv.fnsVine').value, 0.25, 1e-9);
+// New Selection (2026)：$75 Vine + $50 Coupon 額度，攤提到 月銷量 × 攤提月數
+near('C4 新選品 Vine + Coupon = ($75 + $50) / (200 × 3)',
+  pr.promo.details.find(d => d.key === 'sv.fnsVine').value, 125 / spread, 1e-9);
+
+// C4b. New Selection (2026) 佣金折扣：前 100 件收 10%、後 100 件收 5%
+{
+  const ref = Engine.referralFee(25.99, 'home', R);   // 15% = 3.8985
+  // 月銷 200 → 120 天可賣 800 件，取滿 200 件
+  const full = Engine.nspReferralSavings(25.99, ref, 200, R);
+  near('C4b 月銷 200 件：100×(15%-10%) + 100×(15%-5%) 的節省',
+    full, 100 * (ref - 25.99 * 0.10) + 100 * (ref - 25.99 * 0.05), 1e-9);
+  // 月銷 15 → 120 天只賣 60 件，全部落在 10% 那段
+  const few = Engine.nspReferralSavings(25.99, ref, 15, R);
+  near('C4b 月銷 15 件：120 天內 60 件 × (15%-10%)', few, 60 * (ref - 25.99 * 0.10), 1e-9);
+  // 電子產品 8% 本來就低於 10%：前 100 件沒有節省
+  const elRef = Engine.referralFee(25.99, 'electronics', R);
+  const el = Engine.nspReferralSavings(25.99, elRef, 200, R);
+  near('C4b 電子產品 8%：前 100 件不省、後 100 件 8%→5%', el, 100 * (elRef - 25.99 * 0.05), 1e-9);
+  const withRebate = Engine.computeAll({ ...promoIn, promos: { fnsRebate: true } }, R);
+  const d = withRebate.promo.details.find(x => x.key === 'sv.fnsRebate');
+  near('C4b computeAll 攤提 = 總節省 / (月銷量 × 攤提月數)', d.value, full / spread, 1e-9);
+  ok('C4b 佣金折扣有期限 → 計為一次性', d.oneTime === true);
+}
+
+// C4c. NSI $400 Inbound Placement 抵用金：只能抵 Inbound 費，攤提後不能超過每件 Inbound 費
+{
+  const big = Engine.computeAll({ ...promoIn, monthlySales: 20, inboundFee: 0.27, promos: { nsiPlacement: true } }, R);
+  near('C4c 月銷 20：$400 / 60 件 = $6.67 > Inbound $0.27 → 只算 $0.27',
+    big.promo.details.find(x => x.key === 'sv.nsiPlacement').value, 0.27, 1e-9);
+  const many = Engine.computeAll({ ...promoIn, monthlySales: 1000, inboundFee: 0.27, promos: { nsiPlacement: true } }, R);
+  near('C4c 月銷 1000：$400 / 3000 件 = $0.133',
+    many.promo.details.find(x => x.key === 'sv.nsiPlacement').value, 400 / 3000, 1e-9);
+  const xl = Engine.computeAll({ ...promoIn, inboundFee: 0, promos: { nsiPlacement: true } }, R);
+  ok('C4c Inbound 費為 0（例如 XL）時不產生節省', !xl.promo.details.some(x => x.key === 'sv.nsiPlacement'));
+}
+
+// C4d. 預設季節依日期：配送費旺季 2026-10-15 ~ 2027-01-14
+ok('C4d 2026-10-14 為非旺季', Engine.seasonOn('2026-10-14', R) === 'offpeak');
+ok('C4d 2026-10-15 為旺季', Engine.seasonOn('2026-10-15', R) === 'peak');
+ok('C4d 2027-01-14 為旺季', Engine.seasonOn('2027-01-14', R) === 'peak');
+ok('C4d 2027-01-15 為非旺季', Engine.seasonOn('2027-01-15', R) === 'offpeak');
 
 // C5. 台灣電商模式：尺寸要真的有影響（原版 twDim* 完全沒被使用）
 const twBase = {
@@ -441,9 +521,13 @@ ok('D 英文字典沒有缺鍵（切 EN 不會掉回中文）', missingEn.length
 ok('D 英文字典沒有多餘的孤兒鍵', extraEn.length === 0, extraEn.join(', '));
 console.log(`   字典鍵數：zh ${zhKeys.length} / en ${enKeys.length}`);
 
-ok('D 每個 size tier 都有 Inbound Placement 費率',
-  ['smallStandard', 'largeStandard', 'smallBulky', 'largeBulky', 'extraLarge']
-    .every(k => typeof R.inboundPlacement[k] === 'number'));
+ok('D 每個非豁免 size tier 都有 Inbound Placement 級距，且 min ≤ max、級距遞增',
+  ['smallStandard', 'largeStandard', 'smallBulky', 'largeBulky'].every(k => {
+    const b = R.inboundPlacement[k] && R.inboundPlacement[k].bands;
+    return Array.isArray(b) && b.length &&
+      b.every((x, i) => x.min <= x.max && (i === 0 || x.maxLb > b[i - 1].maxLb));
+  }));
+ok('D Extra Large 的 Inbound Placement 為 0（豁免）', R.inboundPlacement.extraLarge === 0);
 ok('D 每個 SEND 服務都有級距與 zh/en 名稱',
   Object.keys(R.send.services).filter(k => !k.startsWith('_')).every(k => {
     const s = R.send.services[k];

@@ -112,11 +112,17 @@ https://sellercentral.amazon.dev/help/hub/reference/external/<NODE_ID>
 這個 `1363 kg/cbm` 是很高的密度假設，一般貨物遠低於此，會**低估**海運成本。
 → 若要更準，建議改成讓使用者直接輸入 CBM，或用更貼近實際的密度（例如 200-400 kg/cbm）。
 
-### 🟡 `storage.standard.offpeak`：$0.78 還是 $0.87
+### 🟡 Small Bulky 尺寸上限：官方兩頁自相矛盾
 
-`rates.js` 寫 `0.78`（原版 2026-04 擷取），官方公開頁寫 `$0.87`。
-旺季 `$2.40` 和大件 `$0.56 / $1.40` 兩邊完全一致，**只有這一格對不上**。
-已記錄在 `storage._conflict`，保留 `0.78` 未動。→ 查 🔒 G200612770 定案。
+size tier 定義頁（GG5KW835AHDJCH8W、G53Z9EKF8VVZVH29）明文寫 Small Bulky
+≤ **37 × 28 × 20 in**，但同一頁的 worked example（40 × 1 × 25 in 白板）卻說它 2026 年是
+Small Bulky —— 40 in 已超過 37 in。本工具採明文上限，測試只驗該範例的體積重（14.4 lb）。
+→ 下次讀到官方頁更新時再確認。
+
+### 🟡 Inbound Placement 只有官方區間
+
+官方只公布 Minimal shipment splits 每個級距的「區間」（依入倉區域浮動），
+`inboundPlacement.estimate` 預設 `'mid'` 取中位數。要保守估算可改 `'max'`。
 
 ### 🟡 `fba.largeStandard` 的體積重門檻
 
@@ -187,9 +193,27 @@ Amazon 實際規則是**實重 1 lb 以下的商品不套用體積重**，這裡
 
 ### 還沒動的
 
-- `storage.standard.offpeak`（$0.78 vs $0.87）—— 倉儲費頁 `G200612770` 會被導到登入頁，Lens 這條路讀不到
-- `inboundPlacement.*` —— 同樣讀不到
 - `send.*` / `freight.*` / `fbm.*` —— 夥伴費率表與市場行情，只能詢價
+- `twMode.defaultExchangeRate` —— 仍是 32.5
+
+## 2c. 2026-10-28 已完成的核對
+
+FBA 配送費頁仍是 2026 那四張表（尚未公告 2027 費率），用腳本把官方表格與 `rates.js`
+四張費率卡逐格比對：**108 列、0 差異**，燃油附加費仍為 3.5%。
+
+倉儲、Inbound Placement、佣金頁用 `read-seller-central.py` 讀不到（導到登入頁或抓不到表格），
+改用 amz-hp-wiki 的 Help Page 快照（2026-09-30 refresh）核對：
+
+| 項目 | 結果 |
+|---|---|
+| `storage.standard.offpeak` | **定案 $0.78**。$0.87 是 2024-04-01 以前的舊費率（同批改版降到 $0.78），`_conflict` 已移除 |
+| `inboundPlacement.*` | **改結構**：2026-01-15 起依 size tier + 重量級距計費，存官方區間 min/max；**Extra-Large 豁免**（原本收 $1.58）；Bulky 實際 $1.10 起（原本 $0.79） |
+| `sizeTiers.smallBulky` / `bulky` | **修正**：Small Bulky 37 × 28 × 20 in（原本 26 × 18 × 14）；Large Bulky 補上中邊 / 短邊 33 in 上限 |
+| 體積重 2 吋下限 | **修正**：改成套在排序後較短的兩邊，原本依使用者輸入欄位順序 |
+| `incentives.newSelection` | **改結構**：舊版 FBA New Selection 2026-07-30 結束，換成 New Selection Program (2026)，限品牌商品；佣金前 100 件 10%、後 100 件 5%；$75 Vine + $50 Coupon；舊的 10% rebate / Vine 75 折 / 免 Inbound 已不存在 |
+| `incentives.nsi.placementCredit` | **新增** $400 Inbound Placement 抵用金 |
+| 預設季節 | 依今天日期決定（`Engine.seasonOn`）；本機存檔不再還原季節，分享連結照舊 |
+| 帳戶月費 $39.99、退款管理費 min(20%, $5)、181 天超齡 | 確認無誤 |
 
 ## 3. 改完之後
 
